@@ -8,6 +8,8 @@ import { generateFanQuote } from '@/ai/flows/mint-your-moment';
 import { improveFanScoreSuggestions } from '@/ai/flows/improve-fan-score-suggestions';
 import { useToast } from "@/hooks/use-toast";
 
+const CHILIZ_SPICY_TESTNET_CHAIN_ID = '0x15f92'; // 88882 in hexadecimal
+
 interface UserState {
   walletAddress: string | null;
   isWalletConnected: boolean;
@@ -26,13 +28,13 @@ interface UserState {
 }
 
 interface UserActions {
-  connectWallet: () => void;
+  connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   setFandomTraits: (traits: string) => void;
   fetchGeneratedBadgeArtwork: () => Promise<void>;
   fetchGeneratedQuote: (fanActivity: string) => Promise<void>;
   fetchAiSuggestions: () => Promise<void>;
-  updateScoreOnAction: (actionType: 'complete_ritual' | 'acquire_nft') => Promise<void>; // For mock updates
+  updateScoreOnAction: (actionType: 'complete_ritual' | 'acquire_nft') => Promise<void>;
 }
 
 const initialState: UserState = {
@@ -69,7 +71,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch(`/api/score?walletAddress=${address}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch score');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch score');
       }
       const data = await response.json();
       setState(prevState => ({
@@ -82,25 +85,143 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }));
     } catch (error) {
       console.error("Error fetching score:", error);
-      toast({ variant: "destructive", title: "Score Fetch Failed", description: "Could not retrieve your Superfan Score." });
+      toast({ variant: "destructive", title: "Score Fetch Failed", description: (error as Error).message });
       setState(prevState => ({ ...prevState, isLoadingScore: false, superfanScore: 0, fanLevel: "Rookie" }));
     }
   }, [toast]);
 
+  const handleAccountsChanged = useCallback(async (accounts: string[]) => {
+    if (accounts.length === 0) {
+      toast({ title: "Wallet Disconnected", description: "Your wallet has been disconnected." });
+      disconnectWallet();
+    } else {
+      const newAddress = accounts[0];
+      setState(prevState => ({
+        ...prevState,
+        walletAddress: newAddress,
+        isWalletConnected: true,
+      }));
+      toast({ title: "Account Switched", description: `Connected to ${newAddress.substring(0, 6)}...${newAddress.substring(newAddress.length - 4)}` });
+      await fetchScoreForWallet(newAddress);
+    }
+  }, [fetchScoreForWallet, toast]);
+
+  const handleChainChanged = useCallback((chainId: string) => {
+    if (chainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+      toast({
+        variant: "destructive",
+        title: "Wrong Network",
+        description: "Please switch to the Chiliz Spicy Testnet in MetaMask.",
+        duration: 5000,
+      });
+      // Optionally disconnect or prevent further actions
+       setState(prevState => ({ ...prevState, isWalletConnected: false, walletAddress: null, superfanScore: 0, fanLevel: "Rookie"}));
+    } else {
+      toast({ title: "Network Correct", description: "Connected to Chiliz Spicy Testnet." });
+      // If previously disconnected due to wrong network, try to reconnect or re-verify
+      if (state.walletAddress) { // Attempt to re-fetch score if an address was known
+         fetchScoreForWallet(state.walletAddress);
+         setState(prevState => ({ ...prevState, isWalletConnected: true}));
+      }
+    }
+  }, [toast, fetchScoreForWallet, state.walletAddress]);
+
+  useEffect(() => {
+    if (typeof window.ethereum !== 'undefined') {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      // Check initial chain ID if already connected (e.g. on page load)
+      // This part is tricky as 'ethereum.isConnected()' doesn't mean app is connected.
+      // We rely on connectWallet to establish the app's connected state.
+
+      return () => {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      };
+    }
+  }, [handleAccountsChanged, handleChainChanged]);
+
 
   const connectWallet = async () => {
-    const mockAddress = `0x${Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-    setState(prevState => ({
-      ...prevState,
-      isWalletConnected: true,
-      walletAddress: mockAddress,
-    }));
-    toast({ title: "Wallet Connected", description: `Address: ${mockAddress.substring(0,6)}...${mockAddress.substring(mockAddress.length-4)}` });
-    await fetchScoreForWallet(mockAddress);
+    if (typeof window.ethereum === 'undefined') {
+      toast({ variant: "destructive", title: "MetaMask Not Found", description: "Please install MetaMask to connect your wallet." });
+      return;
+    }
+
+    try {
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (currentChainId !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+        toast({
+          variant: "destructive",
+          title: "Wrong Network",
+          description: "Please switch to Chiliz Spicy Testnet in MetaMask first.",
+          duration: 5000,
+        });
+        // Try to switch network
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: CHILIZ_SPICY_TESTNET_CHAIN_ID }],
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to MetaMask.
+          if (switchError.code === 4902) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [
+                  {
+                    chainId: CHILIZ_SPICY_TESTNET_CHAIN_ID,
+                    chainName: 'Chiliz Spicy Testnet',
+                    nativeCurrency: {
+                      name: 'CHZ',
+                      symbol: 'CHZ',
+                      decimals: 18,
+                    },
+                    rpcUrls: ['https://spicy-rpc.chiliz.com/'],
+                    blockExplorerUrls: ['https://spicy-explorer.chiliz.com/'],
+                  },
+                ],
+              });
+            } catch (addError) {
+              toast({ variant: "destructive", title: "Network Setup Failed", description: "Could not add Chiliz Spicy Testnet to MetaMask." });
+              return;
+            }
+          } else {
+            toast({ variant: "destructive", title: "Network Switch Failed", description: "Could not switch to Chiliz Spicy Testnet." });
+            return;
+          }
+        }
+      }
+
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+      if (accounts.length > 0) {
+        const address = accounts[0];
+        setState(prevState => ({
+          ...prevState,
+          isWalletConnected: true,
+          walletAddress: address,
+        }));
+        toast({ title: "Wallet Connected", description: `Address: ${address.substring(0, 6)}...${address.substring(address.length - 4)}` });
+        await fetchScoreForWallet(address);
+      } else {
+         toast({ variant: "destructive", title: "Connection Failed", description: "No accounts found. Please check MetaMask."});
+      }
+    } catch (error: any) {
+      console.error("Error connecting wallet:", error);
+      if (error.code === 4001) { // User rejected request
+        toast({ variant: "destructive", title: "Connection Rejected", description: "You rejected the wallet connection request." });
+      } else {
+        toast({ variant: "destructive", title: "Connection Failed", description: error.message || "An unexpected error occurred." });
+      }
+      setState(prevState => ({ ...prevState, isWalletConnected: false, walletAddress: null }));
+    }
   };
 
   const disconnectWallet = () => {
-    setState(initialState); // Reset to initial state
+    // No direct "disconnect" method for window.ethereum, so we reset app state
+    setState(initialState);
     toast({ title: "Wallet Disconnected" });
   };
   
@@ -117,7 +238,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ walletAddress: state.walletAddress, action: actionType }),
       });
       if (!response.ok) {
-        throw new Error('Failed to update score');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update score');
       }
       const data = await response.json();
       setState(prevState => ({
@@ -131,11 +253,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: "Score Updated!", description: data.message });
     } catch (error) {
       console.error("Error updating score:", error);
-      toast({ variant: "destructive", title: "Score Update Failed", description: "Could not update your score." });
+      toast({ variant: "destructive", title: "Score Update Failed", description: (error as Error).message });
       setState(prevState => ({ ...prevState, isLoadingScore: false }));
     }
   };
-
 
   const setFandomTraits = (traits: string) => {
     setState(prevState => ({ ...prevState, fandomTraits: traits }));
@@ -144,6 +265,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const fetchGeneratedBadgeArtwork = async () => {
     if (!state.fandomTraits) {
       toast({ variant: "destructive", title: "Error", description: "Please set your fandom traits first." });
+      return;
+    }
+    if (!state.isWalletConnected) {
+      toast({ variant: "destructive", title: "Error", description: "Please connect your wallet first." });
       return;
     }
     setState(prevState => ({ ...prevState, isLoadingAiArtwork: true }));
@@ -161,6 +286,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const fetchGeneratedQuote = async (fanActivity: string) => {
     if (!fanActivity) {
       toast({ variant: "destructive", title: "Error", description: "Please describe your fan activity." });
+      return;
+    }
+     if (!state.isWalletConnected) {
+      toast({ variant: "destructive", title: "Error", description: "Please connect your wallet first." });
       return;
     }
     setState(prevState => ({ ...prevState, isLoadingAiQuote: true }));
@@ -182,13 +311,19 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
     setState(prevState => ({ ...prevState, isLoadingAiSuggestions: true }));
     try {
-      const result = await improveFanScoreSuggestions({ superfanScore: state.superfanScore, walletAddress: state.walletAddress });
+      // Pass the current nftsHeld and ritualsCompleted to the AI suggestions flow
+      const result = await improveFanScoreSuggestions({ 
+        superfanScore: state.superfanScore, 
+        walletAddress: state.walletAddress
+        // We could add nftsHeld: state.nftsHeld, ritualsCompleted: state.ritualsCompleted here
+        // if the Genkit flow is updated to use them for more tailored suggestions.
+      });
       setState(prevState => ({ ...prevState, aiSuggestions: result.suggestions, isLoadingAiSuggestions: false }));
-      toast({ title: "AI Suggestions Ready", description: "Check out how to boost your FanCred!" });
+      // No toast here, as suggestions appear in the chat.
     } catch (error) {
       console.error("Error fetching AI suggestions:", error);
-      setState(prevState => ({ ...prevState, isLoadingAiSuggestions: false, aiSuggestions: ["Failed to load suggestions. Please try again."] }));
-      toast({ variant: "destructive", title: "Suggestion Fetch Failed", description: "Could not get AI suggestions. Please try again." });
+      setState(prevState => ({ ...prevState, isLoadingAiSuggestions: false, aiSuggestions: ["Failed to load suggestions. Please try again later."] }));
+      toast({ variant: "destructive", title: "Suggestion Fetch Failed", description: "Could not get AI suggestions. Please check console." });
     }
   };
 
