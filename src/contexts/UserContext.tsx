@@ -26,6 +26,7 @@ interface UserState {
   isLoadingAiQuote: boolean;
   isLoadingAiSuggestions: boolean;
   isLoadingFanAnalysis: boolean;
+  isConnecting: boolean; // New state for managing connection process
   nftsHeld: number;
   ritualsCompleted: number;
   chzBalance: number;
@@ -57,6 +58,7 @@ const initialState: UserState = {
   isLoadingAiQuote: false,
   isLoadingAiSuggestions: false,
   isLoadingFanAnalysis: false,
+  isConnecting: false, // Initialize new state
   nftsHeld: 0,
   ritualsCompleted: 0,
   chzBalance: 0,
@@ -99,37 +101,47 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [toast]);
 
+  const disconnectWallet = useCallback(() => {
+    setState(initialState); // Reset to initial state, which includes isConnecting: false
+    toast({ title: "Wallet Disconnected" });
+  }, [toast]);
+
+
   const handleAccountsChanged = useCallback(async (accounts: string[]) => {
     if (accounts.length === 0) {
-      toast({ title: "Wallet Disconnected", description: "Your wallet has been disconnected." });
-      disconnectWallet(); // Use the existing disconnectWallet function
+      // Handles wallet disconnect from MetaMask side
+      disconnectWallet();
     } else {
       const newAddress = accounts[0];
-      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-      if (currentChainId !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
-        setState(prevState => ({
-            ...prevState,
-            walletAddress: newAddress, // Update address but mark as not fully connected due to network
-            isWalletConnected: false, // Or a new state e.g. isNetworkCorrect: false
-        }));
-        toast({
+      // Check network if an account is detected
+      if (typeof window.ethereum !== 'undefined') {
+        const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (currentChainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+          toast({
             variant: "destructive",
-            title: "Wrong Network After Account Switch",
-            description: "Please switch to the Chiliz Spicy Testnet in MetaMask.",
+            title: "Wrong Network",
+            description: "Account changed, but you're on the wrong network. Please switch to Chiliz Spicy Testnet.",
             duration: 5000,
-        });
-        return; // Stop further processing until network is correct
+          });
+          setState(prevState => ({
+            ...prevState,
+            walletAddress: newAddress, // Keep new address
+            isWalletConnected: false, // But mark as not fully connected
+            superfanScore: 0, fanLevel: "Rookie", fanAnalysis: null, aiSuggestions: [] // Reset critical data
+          }));
+        } else {
+          // Network is correct, proceed with new account
+          setState(prevState => ({
+            ...prevState,
+            walletAddress: newAddress,
+            isWalletConnected: true,
+          }));
+          toast({ title: "Account Switched", description: `Connected to ${newAddress.substring(0, 6)}...${newAddress.substring(newAddress.length - 4)}` });
+          await fetchScoreForWallet(newAddress);
+        }
       }
-
-      setState(prevState => ({
-        ...prevState,
-        walletAddress: newAddress,
-        isWalletConnected: true,
-      }));
-      toast({ title: "Account Switched", description: `Connected to ${newAddress.substring(0, 6)}...${newAddress.substring(newAddress.length - 4)}` });
-      await fetchScoreForWallet(newAddress);
     }
-  }, [fetchScoreForWallet, toast]);
+  }, [fetchScoreForWallet, toast, disconnectWallet]);
 
   const handleChainChanged = useCallback(async (chainId: string) => {
     if (chainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
@@ -139,23 +151,70 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         description: "Please switch to the Chiliz Spicy Testnet in MetaMask.",
         duration: 5000,
       });
-       setState(prevState => ({ ...prevState, isWalletConnected: false, superfanScore: 0, fanLevel: "Rookie", fanAnalysis: null, aiSuggestions: [] })); // Reset key data if network is wrong
+       setState(prevState => ({ 
+           ...prevState, 
+           isWalletConnected: false, // Mark as not connected due to wrong network
+           superfanScore: 0, 
+           fanLevel: "Rookie", 
+           fanAnalysis: null, 
+           aiSuggestions: [] 
+        }));
     } else {
-      toast({ title: "Network Correct", description: "Connected to Chiliz Spicy Testnet." });
-      if (state.walletAddress) { 
+      toast({ title: "Network Corrected", description: "Successfully connected to Chiliz Spicy Testnet." });
+      // If a wallet address was already known, mark as connected and fetch score
+      if (state.walletAddress) {
          setState(prevState => ({ ...prevState, isWalletConnected: true}));
-         await fetchScoreForWallet(state.walletAddress); // Re-fetch score now that network is correct
+         await fetchScoreForWallet(state.walletAddress);
       } else {
-        // If no wallet address was set (e.g., initial load on wrong network), prompt to connect
-        connectWallet();
+        // If no wallet address (e.g., app loaded on wrong network, then user switched),
+        // we might need to re-initiate connection or prompt user.
+        // For now, if connectWallet was the initiator, it will continue.
+        // If user manually changed network, and walletAddress is null, they might need to click connect again.
+        // This case is tricky; ideally, if they switch to the correct network, and we previously failed due to network, we'd retry.
+        // However, connectWallet() has its own flow.
       }
     }
-  }, [toast, fetchScoreForWallet, state.walletAddress]); // Added connectWallet here
+  }, [toast, fetchScoreForWallet, state.walletAddress]);
 
   useEffect(() => {
     if (typeof window.ethereum !== 'undefined') {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
+
+      // Attempt to re-connect if already approved (e.g. page refresh)
+      // and on the correct network.
+      const checkExistingConnection = async () => {
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
+            if (accounts.length > 0) {
+                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (currentChainId.toLowerCase() === CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+                    setState(prevState => ({
+                        ...prevState,
+                        walletAddress: accounts[0],
+                        isWalletConnected: true,
+                    }));
+                    await fetchScoreForWallet(accounts[0]);
+                } else {
+                     // On wrong network on load, but address is known
+                    setState(prevState => ({
+                        ...prevState,
+                        walletAddress: accounts[0],
+                        isWalletConnected: false, // Not fully connected
+                    }));
+                     toast({
+                        variant: "destructive",
+                        title: "Wrong Network on Load",
+                        description: "Please switch to Chiliz Spicy Testnet.",
+                        duration: 5000
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error checking existing connection:", error);
+        }
+      };
+      checkExistingConnection();
 
       return () => {
         if (window.ethereum.removeListener) {
@@ -164,7 +223,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }
       };
     }
-  }, [handleAccountsChanged, handleChainChanged]);
+  }, [handleAccountsChanged, handleChainChanged, fetchScoreForWallet, toast]); // Added fetchScoreForWallet and toast
 
 
   const connectWallet = async () => {
@@ -172,22 +231,26 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       toast({ variant: "destructive", title: "MetaMask Not Found", description: "Please install MetaMask to connect your wallet." });
       return;
     }
+    if (state.isConnecting) return; // Prevent re-entrant calls
+
+    setState(prevState => ({ ...prevState, isConnecting: true }));
 
     try {
-      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      let currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+
       if (currentChainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
         toast({
-          variant: "destructive",
-          title: "Wrong Network",
+          title: "Network Switch Required",
           description: "Attempting to switch to Chiliz Spicy Testnet...",
-          duration: 3000,
         });
         try {
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: CHILIZ_SPICY_TESTNET_CHAIN_ID }],
           });
-          // After successful switch, chainChanged event should handle the rest
+          // MetaMask handles the switch, chainChanged event will fire and update state.
+          // We need to wait for chainChanged to resolve or re-check.
+          currentChainId = await window.ethereum.request({ method: 'eth_chainId' }); // Re-fetch after attempt
         } catch (switchError: any) {
           if (switchError.code === 4902) { // Chain not added
             toast({ title: "Network Not Added", description: "Attempting to add Chiliz Spicy Testnet..."});
@@ -204,32 +267,33 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                   },
                 ],
               });
-               // After successful add, chainChanged event should handle the rest, or re-request accounts
+              // After successful add, chainChanged should fire or we re-check
+              currentChainId = await window.ethereum.request({ method: 'eth_chainId' }); // Re-fetch
             } catch (addError) {
-              toast({ variant: "destructive", title: "Network Add Failed", description: "Could not add Chiliz Spicy Testnet." });
+              console.error("Add network error:", addError);
+              toast({ variant: "destructive", title: "Network Add Failed", description: "Could not add Chiliz Spicy Testnet. Please do it manually." });
+              setState(prevState => ({ ...prevState, isConnecting: false }));
               return;
             }
           } else {
+            console.error("Switch network error:", switchError);
             toast({ variant: "destructive", title: "Network Switch Failed", description: "Could not switch to Chiliz Spicy Testnet. Please do it manually." });
+            setState(prevState => ({ ...prevState, isConnecting: false }));
             return;
           }
         }
-        // At this point, if switch/add was successful, chainChanged should fire.
-        // We might need to re-request accounts if not automatically handled.
-        // For now, let's assume chainChanged takes over or user re-clicks.
+      }
+
+      // Final check of network ID before requesting accounts
+      if (currentChainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+        toast({ variant: "destructive", title: "Wrong Network", description: "Please ensure you are on the Chiliz Spicy Testnet."});
+        setState(prevState => ({ ...prevState, isWalletConnected: false, walletAddress: null, isConnecting: false }));
+        return;
       }
 
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
       if (accounts.length > 0) {
         const address = accounts[0];
-         // Verify chain ID again after requesting accounts, as user might have switched during prompt
-        const finalChainId = await window.ethereum.request({ method: 'eth_chainId' });
-        if (finalChainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
-            toast({ variant: "destructive", title: "Wrong Network", description: "Please ensure you are on the Chiliz Spicy Testnet."});
-            setState(prevState => ({ ...prevState, isWalletConnected: false, walletAddress: address })); // Store address but mark as not fully connected
-            return;
-        }
-
         setState(prevState => ({
           ...prevState,
           isWalletConnected: true,
@@ -244,16 +308,16 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error connecting wallet:", error);
       if (error.code === 4001) { // User rejected request
         toast({ variant: "destructive", title: "Connection Rejected", description: "You rejected the wallet connection request." });
-      } else {
+      } else if (error.message && error.message.includes("Request of type 'wallet_requestPermissions' already pending")) {
+        toast({ variant: "destructive", title: "Request Pending", description: "Please respond to the existing MetaMask request."});
+      }
+      else {
         toast({ variant: "destructive", title: "Connection Failed", description: error.message || "An unexpected error occurred." });
       }
       setState(prevState => ({ ...prevState, isWalletConnected: false, walletAddress: null }));
+    } finally {
+      setState(prevState => ({ ...prevState, isConnecting: false }));
     }
-  };
-
-  const disconnectWallet = () => {
-    setState(initialState);
-    toast({ title: "Wallet Disconnected" });
   };
   
   const updateScoreOnAction = async (actionType: 'complete_ritual' | 'acquire_nft') => {
@@ -303,13 +367,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       toast({ variant: "destructive", title: "Artwork Failed", description: "Please set your fandom traits first." });
       return;
     }
-    // Example score threshold
     if (state.superfanScore < 100) {
         toast({ variant: "destructive", title: "Artwork Denied", description: `Score too low. Need 100, have ${state.superfanScore}.` });
         return;
     }
 
-    setState(prevState => ({ ...prevState, isLoadingAiArtwork: true, generatedBadgeArtwork: null })); // Reset previous artwork
+    setState(prevState => ({ ...prevState, isLoadingAiArtwork: true, generatedBadgeArtwork: null }));
     try {
       const input: AiGenerateBadgeArtworkInput = { fandomTraits: state.fandomTraits };
       const result = await aiGenerateBadgeArtwork(input);
@@ -372,7 +435,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
      if (!state.fandomTraits.trim()) {
       toast({ variant: "destructive", title: "Analysis Failed", description: "Please define your fandom traits for a better analysis." });
-      // return; // Or allow to proceed with a more generic analysis
     }
     setState(prevState => ({ ...prevState, isLoadingFanAnalysis: true, fanAnalysis: null }));
     try {
@@ -386,7 +448,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       };
       const result: GenerateFanAnalysisOutput = await generateFanAnalysis(input);
       setState(prevState => ({ ...prevState, fanAnalysis: result.analysisSummary, isLoadingFanAnalysis: false }));
-       // No toast here, as analysis appears in the chat or a dedicated section.
     } catch (error) {
       console.error("Error fetching fan analysis:", error);
       const errorMsg = "Failed to generate fan analysis. Please try again.";

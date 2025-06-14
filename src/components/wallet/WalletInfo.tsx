@@ -4,10 +4,11 @@
 import React from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, Wallet, AlertTriangle } from 'lucide-react'; // Added AlertTriangle
+import { LogIn, LogOut, Wallet, AlertTriangle } from 'lucide-react';
+import LoadingSpinner from '../ui/LoadingSpinner'; // Import LoadingSpinner
 
 const WalletInfo = () => {
-  const { walletAddress, isWalletConnected, connectWallet, disconnectWallet } = useUser();
+  const { walletAddress, isWalletConnected, connectWallet, disconnectWallet, isConnecting } = useUser(); // Added isConnecting
 
   if (isWalletConnected && walletAddress) {
     return (
@@ -18,7 +19,7 @@ const WalletInfo = () => {
             {`${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`}
           </span>
         </div>
-        <Button variant="outline" size="sm" onClick={disconnectWallet} aria-label="Disconnect wallet">
+        <Button variant="outline" size="sm" onClick={disconnectWallet} disabled={isConnecting} aria-label="Disconnect wallet">
           <LogOut className="mr-2 h-4 w-4" />
           Disconnect
         </Button>
@@ -26,13 +27,15 @@ const WalletInfo = () => {
     );
   }
 
-  // Check if MetaMask is installed - window.ethereum might be undefined on server initially
   const [hasMetaMask, setHasMetaMask] = React.useState(false);
   React.useEffect(() => {
-    setHasMetaMask(typeof window.ethereum !== 'undefined');
+    // Check for MetaMask only on the client side
+    if (typeof window !== 'undefined') {
+      setHasMetaMask(typeof window.ethereum !== 'undefined');
+    }
   }, []);
 
-  if (!hasMetaMask && typeof window !== 'undefined') { // Check typeof window to ensure client-side
+  if (typeof window !== 'undefined' && !hasMetaMask) { 
     return (
       <div className="flex items-center gap-2 p-2 border border-destructive/50 rounded-md bg-destructive/10 text-sm text-destructive shadow-sm">
         <AlertTriangle className="h-5 w-5" />
@@ -42,9 +45,13 @@ const WalletInfo = () => {
   }
 
   return (
-    <Button onClick={connectWallet} variant="default" aria-label="Connect wallet">
-      <LogIn className="mr-2 h-4 w-4" />
-      Connect Wallet
+    <Button onClick={connectWallet} variant="default" disabled={isConnecting} aria-label="Connect wallet">
+      {isConnecting ? (
+        <LoadingSpinner size="sm" className="mr-2" />
+      ) : (
+        <LogIn className="mr-2 h-4 w-4" />
+      )}
+      {isConnecting ? 'Connecting...' : 'Connect Wallet'}
     </Button>
   );
 };

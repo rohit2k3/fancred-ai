@@ -5,10 +5,11 @@ import React from 'react';
 import { useUser } from '@/contexts/UserContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap } from 'lucide-react'; // Zap for energy/action
+import { Zap } from 'lucide-react'; 
+import LoadingSpinner from '../ui/LoadingSpinner'; // Import LoadingSpinner
 
 const ConnectWalletPrompt = () => {
-  const { connectWallet } = useUser();
+  const { connectWallet, isConnecting } = useUser(); // Added isConnecting
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
@@ -27,9 +28,15 @@ const ConnectWalletPrompt = () => {
             size="lg" 
             className="w-full text-lg py-6" 
             onClick={connectWallet}
+            disabled={isConnecting} // Disable button when connecting
             aria-label="Connect your wallet to get started"
           >
-            Connect Wallet & Get Started
+            {isConnecting ? (
+              <LoadingSpinner size="md" className="mr-2" />
+            ) : (
+              <Zap className="mr-2 h-5 w-5" /> // Keep Zap or use LogIn like in WalletInfo
+            )}
+            {isConnecting ? 'Connecting...' : 'Connect Wallet & Get Started'}
           </Button>
           <p className="mt-4 text-xs text-muted-foreground">
             We support MetaMask on the Chiliz Chain Testnet.
