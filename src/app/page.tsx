@@ -10,6 +10,7 @@ import BadgeCard from '@/components/dashboard/BadgeCard';
 import AiAssistant from '@/components/ai/AiAssistant';
 import MintYourMoment from '@/components/ai/MintYourMoment';
 import FandomTraitsInput from '@/components/dashboard/FandomTraitsInput';
+import LeaderboardCard from '@/components/dashboard/LeaderboardCard'; // Import LeaderboardCard
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -89,6 +90,10 @@ export default function FanCredDashboard() {
 
             <div className="md:col-span-2 lg:col-span-3 xl:col-span-2">
               <MintYourMoment />
+            </div>
+
+            <div className="md:col-span-2 lg:col-span-3 xl:col-span-2"> {/* Leaderboard takes similar space */}
+              <LeaderboardCard />
             </div>
 
             {/* Placeholder for Revenue Model/Staking (Phase 5) */}
