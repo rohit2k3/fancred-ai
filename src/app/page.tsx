@@ -1,3 +1,4 @@
+
 // src/app/page.tsx
 "use client";
 
@@ -10,7 +11,8 @@ import BadgeCard from '@/components/dashboard/BadgeCard';
 import AiAssistant from '@/components/ai/AiAssistant';
 import MintYourMoment from '@/components/ai/MintYourMoment';
 import FandomTraitsInput from '@/components/dashboard/FandomTraitsInput';
-import LeaderboardCard from '@/components/dashboard/LeaderboardCard'; // Import LeaderboardCard
+import LeaderboardCard from '@/components/dashboard/LeaderboardCard';
+import FanRitualCard from '@/components/dashboard/FanRitualCard'; // Import FanRitualCard
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -91,8 +93,12 @@ export default function FanCredDashboard() {
             <div className="md:col-span-2 lg:col-span-3 xl:col-span-2">
               <MintYourMoment />
             </div>
+            
+            <div className="md:col-span-2 lg:col-span-3 xl:col-span-2"> {/* FanRitualCard takes similar space */}
+              <FanRitualCard />
+            </div>
 
-            <div className="md:col-span-2 lg:col-span-3 xl:col-span-2"> {/* Leaderboard takes similar space */}
+            <div className="md:col-span-2 lg:col-span-3 xl:col-span-2">
               <LeaderboardCard />
             </div>
 
