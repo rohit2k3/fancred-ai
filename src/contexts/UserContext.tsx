@@ -3,9 +3,10 @@
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { aiGenerateBadgeArtwork } from '@/ai/flows/ai-generate-badge-artwork';
-import { generateFanQuote } from '@/ai/flows/mint-your-moment';
-import { improveFanScoreSuggestions } from '@/ai/flows/improve-fan-score-suggestions';
+import { aiGenerateBadgeArtwork, type AiGenerateBadgeArtworkInput } from '@/ai/flows/ai-generate-badge-artwork';
+import { generateFanQuote, type MintYourMomentInput } from '@/ai/flows/mint-your-moment';
+import { improveFanScoreSuggestions, type ImproveFanScoreSuggestionsInput } from '@/ai/flows/improve-fan-score-suggestions';
+import { generateFanAnalysis, type GenerateFanAnalysisInput, type GenerateFanAnalysisOutput } from '@/ai/flows/generate-fan-analysis-flow';
 import { useToast } from "@/hooks/use-toast";
 
 const CHILIZ_SPICY_TESTNET_CHAIN_ID = '0x15f92'; // 88882 in hexadecimal
@@ -19,12 +20,15 @@ interface UserState {
   generatedBadgeArtwork: string | null;
   generatedQuote: string | null;
   aiSuggestions: string[];
+  fanAnalysis: string | null;
   isLoadingScore: boolean;
   isLoadingAiArtwork: boolean;
   isLoadingAiQuote: boolean;
   isLoadingAiSuggestions: boolean;
+  isLoadingFanAnalysis: boolean;
   nftsHeld: number;
   ritualsCompleted: number;
+  chzBalance: number;
 }
 
 interface UserActions {
@@ -34,6 +38,7 @@ interface UserActions {
   fetchGeneratedBadgeArtwork: () => Promise<void>;
   fetchGeneratedQuote: (fanActivity: string) => Promise<void>;
   fetchAiSuggestions: () => Promise<void>;
+  fetchFanAnalysis: () => Promise<void>;
   updateScoreOnAction: (actionType: 'complete_ritual' | 'acquire_nft') => Promise<void>;
 }
 
@@ -46,12 +51,15 @@ const initialState: UserState = {
   generatedBadgeArtwork: null,
   generatedQuote: null,
   aiSuggestions: [],
+  fanAnalysis: null,
   isLoadingScore: false,
   isLoadingAiArtwork: false,
   isLoadingAiQuote: false,
   isLoadingAiSuggestions: false,
+  isLoadingFanAnalysis: false,
   nftsHeld: 0,
   ritualsCompleted: 0,
+  chzBalance: 0,
 };
 
 const UserContext = createContext<(UserState & UserActions) | undefined>(undefined);
@@ -81,21 +89,38 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         fanLevel: calculateFanLevel(data.score),
         nftsHeld: data.nftsHeld || 0,
         ritualsCompleted: data.ritualsCompleted || 0,
+        chzBalance: data.chzBalance || 0,
         isLoadingScore: false,
       }));
     } catch (error) {
       console.error("Error fetching score:", error);
       toast({ variant: "destructive", title: "Score Fetch Failed", description: (error as Error).message });
-      setState(prevState => ({ ...prevState, isLoadingScore: false, superfanScore: 0, fanLevel: "Rookie" }));
+      setState(prevState => ({ ...prevState, isLoadingScore: false, superfanScore: 0, fanLevel: "Rookie", nftsHeld: 0, ritualsCompleted: 0, chzBalance: 0 }));
     }
   }, [toast]);
 
   const handleAccountsChanged = useCallback(async (accounts: string[]) => {
     if (accounts.length === 0) {
       toast({ title: "Wallet Disconnected", description: "Your wallet has been disconnected." });
-      disconnectWallet();
+      disconnectWallet(); // Use the existing disconnectWallet function
     } else {
       const newAddress = accounts[0];
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      if (currentChainId !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+        setState(prevState => ({
+            ...prevState,
+            walletAddress: newAddress, // Update address but mark as not fully connected due to network
+            isWalletConnected: false, // Or a new state e.g. isNetworkCorrect: false
+        }));
+        toast({
+            variant: "destructive",
+            title: "Wrong Network After Account Switch",
+            description: "Please switch to the Chiliz Spicy Testnet in MetaMask.",
+            duration: 5000,
+        });
+        return; // Stop further processing until network is correct
+      }
+
       setState(prevState => ({
         ...prevState,
         walletAddress: newAddress,
@@ -106,7 +131,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [fetchScoreForWallet, toast]);
 
-  const handleChainChanged = useCallback((chainId: string) => {
+  const handleChainChanged = useCallback(async (chainId: string) => {
     if (chainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
       toast({
         variant: "destructive",
@@ -114,30 +139,29 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         description: "Please switch to the Chiliz Spicy Testnet in MetaMask.",
         duration: 5000,
       });
-      // Optionally disconnect or prevent further actions
-       setState(prevState => ({ ...prevState, isWalletConnected: false, walletAddress: null, superfanScore: 0, fanLevel: "Rookie"}));
+       setState(prevState => ({ ...prevState, isWalletConnected: false, superfanScore: 0, fanLevel: "Rookie", fanAnalysis: null, aiSuggestions: [] })); // Reset key data if network is wrong
     } else {
       toast({ title: "Network Correct", description: "Connected to Chiliz Spicy Testnet." });
-      // If previously disconnected due to wrong network, try to reconnect or re-verify
-      if (state.walletAddress) { // Attempt to re-fetch score if an address was known
-         fetchScoreForWallet(state.walletAddress);
+      if (state.walletAddress) { 
          setState(prevState => ({ ...prevState, isWalletConnected: true}));
+         await fetchScoreForWallet(state.walletAddress); // Re-fetch score now that network is correct
+      } else {
+        // If no wallet address was set (e.g., initial load on wrong network), prompt to connect
+        connectWallet();
       }
     }
-  }, [toast, fetchScoreForWallet, state.walletAddress]);
+  }, [toast, fetchScoreForWallet, state.walletAddress]); // Added connectWallet here
 
   useEffect(() => {
     if (typeof window.ethereum !== 'undefined') {
       window.ethereum.on('accountsChanged', handleAccountsChanged);
       window.ethereum.on('chainChanged', handleChainChanged);
 
-      // Check initial chain ID if already connected (e.g. on page load)
-      // This part is tricky as 'ethereum.isConnected()' doesn't mean app is connected.
-      // We rely on connectWallet to establish the app's connected state.
-
       return () => {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        if (window.ethereum.removeListener) {
+            window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+            window.ethereum.removeListener('chainChanged', handleChainChanged);
+        }
       };
     }
   }, [handleAccountsChanged, handleChainChanged]);
@@ -151,22 +175,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-      if (currentChainId !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+      if (currentChainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
         toast({
           variant: "destructive",
           title: "Wrong Network",
-          description: "Please switch to Chiliz Spicy Testnet in MetaMask first.",
-          duration: 5000,
+          description: "Attempting to switch to Chiliz Spicy Testnet...",
+          duration: 3000,
         });
-        // Try to switch network
         try {
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: CHILIZ_SPICY_TESTNET_CHAIN_ID }],
           });
+          // After successful switch, chainChanged event should handle the rest
         } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to MetaMask.
-          if (switchError.code === 4902) {
+          if (switchError.code === 4902) { // Chain not added
+            toast({ title: "Network Not Added", description: "Attempting to add Chiliz Spicy Testnet..."});
             try {
               await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
@@ -174,30 +198,38 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                   {
                     chainId: CHILIZ_SPICY_TESTNET_CHAIN_ID,
                     chainName: 'Chiliz Spicy Testnet',
-                    nativeCurrency: {
-                      name: 'CHZ',
-                      symbol: 'CHZ',
-                      decimals: 18,
-                    },
+                    nativeCurrency: { name: 'CHZ', symbol: 'CHZ', decimals: 18 },
                     rpcUrls: ['https://spicy-rpc.chiliz.com/'],
                     blockExplorerUrls: ['https://spicy-explorer.chiliz.com/'],
                   },
                 ],
               });
+               // After successful add, chainChanged event should handle the rest, or re-request accounts
             } catch (addError) {
-              toast({ variant: "destructive", title: "Network Setup Failed", description: "Could not add Chiliz Spicy Testnet to MetaMask." });
+              toast({ variant: "destructive", title: "Network Add Failed", description: "Could not add Chiliz Spicy Testnet." });
               return;
             }
           } else {
-            toast({ variant: "destructive", title: "Network Switch Failed", description: "Could not switch to Chiliz Spicy Testnet." });
+            toast({ variant: "destructive", title: "Network Switch Failed", description: "Could not switch to Chiliz Spicy Testnet. Please do it manually." });
             return;
           }
         }
+        // At this point, if switch/add was successful, chainChanged should fire.
+        // We might need to re-request accounts if not automatically handled.
+        // For now, let's assume chainChanged takes over or user re-clicks.
       }
 
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
       if (accounts.length > 0) {
         const address = accounts[0];
+         // Verify chain ID again after requesting accounts, as user might have switched during prompt
+        const finalChainId = await window.ethereum.request({ method: 'eth_chainId' });
+        if (finalChainId.toLowerCase() !== CHILIZ_SPICY_TESTNET_CHAIN_ID) {
+            toast({ variant: "destructive", title: "Wrong Network", description: "Please ensure you are on the Chiliz Spicy Testnet."});
+            setState(prevState => ({ ...prevState, isWalletConnected: false, walletAddress: address })); // Store address but mark as not fully connected
+            return;
+        }
+
         setState(prevState => ({
           ...prevState,
           isWalletConnected: true,
@@ -220,14 +252,13 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const disconnectWallet = () => {
-    // No direct "disconnect" method for window.ethereum, so we reset app state
     setState(initialState);
     toast({ title: "Wallet Disconnected" });
   };
   
   const updateScoreOnAction = async (actionType: 'complete_ritual' | 'acquire_nft') => {
-    if (!state.walletAddress) {
-      toast({ variant: "destructive", title: "Error", description: "Wallet not connected." });
+    if (!state.walletAddress || !state.isWalletConnected) {
+      toast({ variant: "destructive", title: "Action Failed", description: "Wallet not connected or on wrong network." });
       return;
     }
     setState(prevState => ({ ...prevState, isLoadingScore: true }));
@@ -248,6 +279,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         fanLevel: calculateFanLevel(data.score),
         nftsHeld: data.nftsHeld !== undefined ? data.nftsHeld : prevState.nftsHeld,
         ritualsCompleted: data.ritualsCompleted !== undefined ? data.ritualsCompleted : prevState.ritualsCompleted,
+        chzBalance: data.chzBalance !== undefined ? data.chzBalance : prevState.chzBalance,
         isLoadingScore: false,
       }));
       toast({ title: "Score Updated!", description: data.message });
@@ -263,17 +295,24 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchGeneratedBadgeArtwork = async () => {
-    if (!state.fandomTraits) {
-      toast({ variant: "destructive", title: "Error", description: "Please set your fandom traits first." });
+    if (!state.isWalletConnected || !state.walletAddress) {
+      toast({ variant: "destructive", title: "Artwork Failed", description: "Please connect your wallet first." });
       return;
     }
-    if (!state.isWalletConnected) {
-      toast({ variant: "destructive", title: "Error", description: "Please connect your wallet first." });
+    if (!state.fandomTraits.trim()) {
+      toast({ variant: "destructive", title: "Artwork Failed", description: "Please set your fandom traits first." });
       return;
     }
-    setState(prevState => ({ ...prevState, isLoadingAiArtwork: true }));
+    // Example score threshold
+    if (state.superfanScore < 100) {
+        toast({ variant: "destructive", title: "Artwork Denied", description: `Score too low. Need 100, have ${state.superfanScore}.` });
+        return;
+    }
+
+    setState(prevState => ({ ...prevState, isLoadingAiArtwork: true, generatedBadgeArtwork: null })); // Reset previous artwork
     try {
-      const result = await aiGenerateBadgeArtwork({ fandomTraits: state.fandomTraits });
+      const input: AiGenerateBadgeArtworkInput = { fandomTraits: state.fandomTraits };
+      const result = await aiGenerateBadgeArtwork(input);
       setState(prevState => ({ ...prevState, generatedBadgeArtwork: result.badgeArtwork, isLoadingAiArtwork: false }));
       toast({ title: "Badge Artwork Generated!", description: "Your unique fan badge is ready." });
     } catch (error) {
@@ -284,17 +323,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchGeneratedQuote = async (fanActivity: string) => {
-    if (!fanActivity) {
-      toast({ variant: "destructive", title: "Error", description: "Please describe your fan activity." });
+    if (!state.isWalletConnected || !state.walletAddress) {
+      toast({ variant: "destructive", title: "Quote Failed", description: "Please connect your wallet first." });
       return;
     }
-     if (!state.isWalletConnected) {
-      toast({ variant: "destructive", title: "Error", description: "Please connect your wallet first." });
+    if (!fanActivity.trim()) {
+      toast({ variant: "destructive", title: "Quote Failed", description: "Please describe your fan activity." });
       return;
     }
-    setState(prevState => ({ ...prevState, isLoadingAiQuote: true }));
+    setState(prevState => ({ ...prevState, isLoadingAiQuote: true, generatedQuote: null }));
     try {
-      const result = await generateFanQuote({ fanActivity });
+      const input: MintYourMomentInput = { fanActivity };
+      const result = await generateFanQuote(input);
       setState(prevState => ({ ...prevState, generatedQuote: result.fanQuote, isLoadingAiQuote: false }));
       toast({ title: "Fan Quote Generated!", description: "Your personalized fan quote is here." });
     } catch (error) {
@@ -306,29 +346,68 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchAiSuggestions = async () => {
     if (!state.isWalletConnected || !state.walletAddress) {
-       toast({ variant: "destructive", title: "Error", description: "Please connect your wallet first." });
+       toast({ variant: "destructive", title: "Suggestions Failed", description: "Please connect your wallet first." });
       return;
     }
-    setState(prevState => ({ ...prevState, isLoadingAiSuggestions: true }));
+    setState(prevState => ({ ...prevState, isLoadingAiSuggestions: true, aiSuggestions: [] }));
     try {
-      // Pass the current nftsHeld and ritualsCompleted to the AI suggestions flow
-      const result = await improveFanScoreSuggestions({ 
+      const input: ImproveFanScoreSuggestionsInput = { 
         superfanScore: state.superfanScore, 
         walletAddress: state.walletAddress
-        // We could add nftsHeld: state.nftsHeld, ritualsCompleted: state.ritualsCompleted here
-        // if the Genkit flow is updated to use them for more tailored suggestions.
-      });
+      };
+      const result = await improveFanScoreSuggestions(input);
       setState(prevState => ({ ...prevState, aiSuggestions: result.suggestions, isLoadingAiSuggestions: false }));
-      // No toast here, as suggestions appear in the chat.
     } catch (error) {
       console.error("Error fetching AI suggestions:", error);
-      setState(prevState => ({ ...prevState, isLoadingAiSuggestions: false, aiSuggestions: ["Failed to load suggestions. Please try again later."] }));
-      toast({ variant: "destructive", title: "Suggestion Fetch Failed", description: "Could not get AI suggestions. Please check console." });
+      const errorMsg = "Failed to load suggestions. Please try again.";
+      setState(prevState => ({ ...prevState, isLoadingAiSuggestions: false, aiSuggestions: [errorMsg] }));
+      toast({ variant: "destructive", title: "Suggestion Fetch Failed", description: (error as Error).message || errorMsg });
     }
   };
 
+  const fetchFanAnalysis = async () => {
+    if (!state.isWalletConnected || !state.walletAddress) {
+      toast({ variant: "destructive", title: "Analysis Failed", description: "Please connect your wallet first." });
+      return;
+    }
+     if (!state.fandomTraits.trim()) {
+      toast({ variant: "destructive", title: "Analysis Failed", description: "Please define your fandom traits for a better analysis." });
+      // return; // Or allow to proceed with a more generic analysis
+    }
+    setState(prevState => ({ ...prevState, isLoadingFanAnalysis: true, fanAnalysis: null }));
+    try {
+      const input: GenerateFanAnalysisInput = {
+        superfanScore: state.superfanScore,
+        fanLevel: state.fanLevel,
+        fandomTraits: state.fandomTraits,
+        walletAddress: state.walletAddress,
+        numNftsHeld: state.nftsHeld,
+        numRitualsParticipated: state.ritualsCompleted,
+      };
+      const result: GenerateFanAnalysisOutput = await generateFanAnalysis(input);
+      setState(prevState => ({ ...prevState, fanAnalysis: result.analysisSummary, isLoadingFanAnalysis: false }));
+       // No toast here, as analysis appears in the chat or a dedicated section.
+    } catch (error) {
+      console.error("Error fetching fan analysis:", error);
+      const errorMsg = "Failed to generate fan analysis. Please try again.";
+      setState(prevState => ({ ...prevState, isLoadingFanAnalysis: false, fanAnalysis: errorMsg }));
+      toast({ variant: "destructive", title: "Analysis Failed", description: (error as Error).message || errorMsg });
+    }
+  };
+
+
   return (
-    <UserContext.Provider value={{ ...state, connectWallet, disconnectWallet, setFandomTraits, fetchGeneratedBadgeArtwork, fetchGeneratedQuote, fetchAiSuggestions, updateScoreOnAction }}>
+    <UserContext.Provider value={{ 
+        ...state, 
+        connectWallet, 
+        disconnectWallet, 
+        setFandomTraits, 
+        fetchGeneratedBadgeArtwork, 
+        fetchGeneratedQuote, 
+        fetchAiSuggestions,
+        fetchFanAnalysis, 
+        updateScoreOnAction 
+    }}>
       {children}
     </UserContext.Provider>
   );
