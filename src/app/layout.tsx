@@ -1,12 +1,22 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { UserProvider } from '@/contexts/UserContext'; // Ensure this path is correct
+import { UserProvider } from '@/contexts/UserContext';
+import { ThirdwebProvider, metamaskWallet } from "@thirdweb-dev/react";
+import { ChilizSpicy } from "@thirdweb-dev/chains";
 
 export const metadata: Metadata = {
   title: 'FanCred AI',
   description: 'Superfan Score & Dynamic NFT Badge dApp',
 };
+
+// You should store your Thirdweb client ID in an environment variable
+// For example: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID
+const thirdwebClientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "YOUR_THIRDWEB_CLIENT_ID";
+if (thirdwebClientId === "YOUR_THIRDWEB_CLIENT_ID" && process.env.NODE_ENV === "production") {
+  console.warn("Thirdweb Client ID is not set. Please set NEXT_PUBLIC_THIRDWEB_CLIENT_ID for production builds.");
+}
+
 
 export default function RootLayout({
   children,
@@ -22,10 +32,16 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
-        <UserProvider>
-          {children}
-          <Toaster />
-        </UserProvider>
+        <ThirdwebProvider
+          activeChain={ChilizSpicy}
+          supportedWallets={[metamaskWallet()]}
+          clientId={thirdwebClientId} // Replace with your actual client ID or environment variable
+        >
+          <UserProvider>
+            {children}
+            <Toaster />
+          </UserProvider>
+        </ThirdwebProvider>
       </body>
     </html>
   );
