@@ -12,9 +12,22 @@ export const metadata: Metadata = {
 
 // You should store your Thirdweb client ID in an environment variable
 // For example: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID
-const thirdwebClientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "YOUR_THIRDWEB_CLIENT_ID";
-if (thirdwebClientId === "YOUR_THIRDWEB_CLIENT_ID" && process.env.NODE_ENV === "production") {
-  console.warn("Thirdweb Client ID is not set. Please set NEXT_PUBLIC_THIRDWEB_CLIENT_ID for production builds.");
+const thirdwebClientId = process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID;
+
+if (!thirdwebClientId || thirdwebClientId === "YOUR_THIRDWEB_CLIENT_ID") {
+  if (process.env.NODE_ENV === "production") {
+    console.warn(
+      "Thirdweb Client ID is not set or is using the default placeholder. " +
+      "Please set NEXT_PUBLIC_THIRDWEB_CLIENT_ID in your environment variables for production builds. " +
+      "You can get a client ID from https://thirdweb.com/dashboard"
+    );
+  } else {
+     console.info(
+      "Thirdweb Client ID is using a placeholder. This is fine for development. " +
+      "For production, ensure NEXT_PUBLIC_THIRDWEB_CLIENT_ID is set. " +
+      "Get a client ID from https://thirdweb.com/dashboard"
+    );
+  }
 }
 
 
@@ -35,7 +48,7 @@ export default function RootLayout({
         <ThirdwebProvider
           activeChain={ChilizSpicy}
           supportedWallets={[metamaskWallet()]}
-          clientId={thirdwebClientId} // Replace with your actual client ID or environment variable
+          clientId={thirdwebClientId || "YOUR_THIRDWEB_CLIENT_ID"} // Fallback to placeholder if undefined
         >
           <UserProvider>
             {children}

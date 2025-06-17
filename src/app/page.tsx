@@ -12,7 +12,7 @@ import MintYourMoment from '@/components/ai/MintYourMoment';
 import FandomTraitsInput from '@/components/dashboard/FandomTraitsInput';
 import LeaderboardCard from '@/components/dashboard/LeaderboardCard';
 import FanRitualCard from '@/components/dashboard/FanRitualCard';
-import FanMarketplaceCard from '@/components/dashboard/FanMarketplaceCard'; // Import FanMarketplaceCard
+import FanMarketplaceCard from '@/components/dashboard/FanMarketplaceCard';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -24,17 +24,24 @@ export default function FanCredDashboard() {
   const { toast } = useToast();
 
   const handleMintBadge = async () => {
+    // Fandom traits check is handled by BadgeCard and UserContext now, but an additional check here is fine.
     if (!fandomTraits.trim()) {
       toast({
         variant: "destructive",
         title: "Fandom Traits Required",
         description: "Please define your fandom traits before minting a badge.",
       });
-      const traitsInput = document.getElementById('fandom-traits-card');
-      if (traitsInput) traitsInput.scrollIntoView({ behavior: 'smooth' });
+      // Attempt to focus or scroll to the FandomTraitsInput card
+      const traitsInputCard = document.getElementById('fandom-traits-card');
+      if (traitsInputCard) {
+        traitsInputCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const textArea = traitsInputCard.querySelector('textarea');
+        if (textArea) textArea.focus();
+      }
       return;
     }
 
+    // Score check is also handled by BadgeCard and UserContext.
     if (superfanScore < 100) { 
       toast({
         variant: "destructive",
@@ -44,21 +51,17 @@ export default function FanCredDashboard() {
       return;
     }
     
-    toast({
-      title: "Generating Badge Artwork...",
-      description: "AI is crafting your unique badge. This may take a moment. (Mock Mint Fee: 1 CHZ)",
-    });
+    // The initial "Generating..." toast is now primarily handled by BadgeCard or UserContext's fetchGeneratedBadgeArtwork.
+    // If you want a specific toast originating *from this page click*, you can keep it,
+    // but ensure it doesn't conflict with UserContext toasts.
+    // For simplicity, we'll rely on UserContext/BadgeCard toasts for AI artwork status.
+    // toast({
+    //   title: "Initiating Badge Generation...",
+    //   description: "AI is being called to craft your unique badge. (Mock Mint Fee: 1 CHZ)",
+    // });
     
     await fetchGeneratedBadgeArtwork();
-    // In a real app, this would be followed by an actual smart contract call
-    // For now, if artwork generation is successful, we can consider the "minting" step complete for demo
-    if (isLoadingAiArtwork) { // This check might be tricky due to async nature, rely on fetchGeneratedBadgeArtwork's internal toasts
-        // This toast might not fire if isLoadingAiArtwork becomes false immediately after await
-    } else if (generatedBadgeArtwork) {
-        // This is handled by the fetchGeneratedBadgeArtwork's success toast in UserContext
-    } else {
-        // This is handled by the fetchGeneratedBadgeArtwork's error toast in UserContext
-    }
+    // Success or error toasts related to AI artwork generation are now handled within fetchGeneratedBadgeArtwork in UserContext.
   };
 
   if (!isWalletConnected) {
@@ -91,27 +94,22 @@ export default function FanCredDashboard() {
               <FandomTraitsInput />
             </div>
             
-            {/* AI Assistant taking more space */}
             <div className="md:col-span-2 lg:col-span-3 xl:col-span-4">
               <AiAssistant />
             </div>
 
-            {/* Mint Your Moment taking more space */}
             <div className="md:col-span-2 lg:col-span-2 xl:col-span-2">
               <MintYourMoment />
             </div>
             
-            {/* FanRitualCard */}
             <div className="md:col-span-2 lg:col-span-1 xl:col-span-2"> 
               <FanRitualCard />
             </div>
             
-            {/* FanMarketplaceCard */}
             <div className="md:col-span-2 lg:col-span-2 xl:col-span-2">
                 <FanMarketplaceCard />
             </div>
 
-            {/* Placeholder for Revenue Model/Staking (Phase 5) */}
             <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center relative">
                 <h3 className="text-xl font-headline mb-2 text-primary">Fan Staking Vault</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -130,12 +128,10 @@ export default function FanCredDashboard() {
                 </Tooltip>
             </div>
 
-            {/* Leaderboard takes full width on smaller, half on larger */}
             <div className="md:col-span-2 lg:col-span-3 xl:col-span-4">
               <LeaderboardCard />
             </div>
 
-            {/* Shareable Profile Link Card */}
             {walletAddress && (
               <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center relative">
                   <h3 className="text-xl font-headline mb-2 text-primary">Your Fan Profile</h3>
@@ -152,7 +148,7 @@ export default function FanCredDashboard() {
                           <Info className="h-4 w-4 text-muted-foreground absolute top-4 right-4 cursor-help"/>
                       </TooltipTrigger>
                       <TooltipContent>
-                          <p>A shareable page showcasing your score, badge, and level. (Basic structure implemented)</p>
+                          <p>A shareable page showcasing your score, badge, and level.</p>
                       </TooltipContent>
                   </Tooltip>
               </div>
