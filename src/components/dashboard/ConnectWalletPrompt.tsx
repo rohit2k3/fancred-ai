@@ -1,3 +1,4 @@
+
 // src/components/dashboard/ConnectWalletPrompt.tsx
 "use client";
 
@@ -9,7 +10,7 @@ import { Zap } from 'lucide-react';
 import LoadingSpinner from '../ui/LoadingSpinner';
 
 const ConnectWalletPrompt = () => {
-  const { connectWallet, isConnecting } = useUser();
+  const { connectWallet, isConnecting } = useUser(); // isConnecting reflects thirdweb's connectionStatus === 'connecting'
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
@@ -27,7 +28,7 @@ const ConnectWalletPrompt = () => {
           <Button 
             size="lg" 
             className="w-full text-lg py-6" 
-            onClick={connectWallet} // Use the connectWallet from UserContext
+            onClick={connectWallet}
             disabled={isConnecting}
             aria-label="Connect your wallet to get started"
           >
@@ -39,7 +40,7 @@ const ConnectWalletPrompt = () => {
             {isConnecting ? 'Connecting...' : 'Connect Wallet & Get Started'}
           </Button>
           <p className="mt-4 text-xs text-muted-foreground">
-            We support MetaMask on the Chiliz Chain Testnet.
+            We support MetaMask on the Chiliz Spicy Testnet. Ensure your wallet is set to this network.
           </p>
         </CardContent>
       </Card>
@@ -48,3 +49,4 @@ const ConnectWalletPrompt = () => {
 };
 
 export default ConnectWalletPrompt;
+

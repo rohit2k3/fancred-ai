@@ -1,3 +1,4 @@
+
 // src/app/page.tsx
 "use client";
 
@@ -20,48 +21,16 @@ import { Info, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function FanCredDashboard() {
-  const { isWalletConnected, fetchGeneratedBadgeArtwork, fandomTraits, isLoadingAiArtwork, generatedBadgeArtwork, superfanScore, walletAddress } = useUser();
+  const { isWalletConnected, isOnCorrectNetwork, fetchGeneratedBadgeArtwork, fandomTraits, isLoadingAiArtwork, generatedBadgeArtwork, superfanScore, walletAddress } = useUser();
   const { toast } = useToast();
 
   const handleMintBadge = async () => {
-    // Fandom traits check is handled by BadgeCard and UserContext now, but an additional check here is fine.
-    if (!fandomTraits.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Fandom Traits Required",
-        description: "Please define your fandom traits before minting a badge.",
-      });
-      // Attempt to focus or scroll to the FandomTraitsInput card
-      const traitsInputCard = document.getElementById('fandom-traits-card');
-      if (traitsInputCard) {
-        traitsInputCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        const textArea = traitsInputCard.querySelector('textarea');
-        if (textArea) textArea.focus();
-      }
-      return;
-    }
-
-    // Score check is also handled by BadgeCard and UserContext.
-    if (superfanScore < 100) { 
-      toast({
-        variant: "destructive",
-        title: "Score Too Low for Badge",
-        description: `You need a Superfan Score of at least 100 to mint a badge. Your score is ${superfanScore}.`,
-      });
-      return;
-    }
+    // Fandom traits and score checks are now more robustly handled in UserContext/BadgeCard,
+    // but an early check here can provide immediate feedback if desired.
+    // For simplicity, we'll rely on UserContext and BadgeCard for these checks.
     
-    // The initial "Generating..." toast is now primarily handled by BadgeCard or UserContext's fetchGeneratedBadgeArtwork.
-    // If you want a specific toast originating *from this page click*, you can keep it,
-    // but ensure it doesn't conflict with UserContext toasts.
-    // For simplicity, we'll rely on UserContext/BadgeCard toasts for AI artwork status.
-    // toast({
-    //   title: "Initiating Badge Generation...",
-    //   description: "AI is being called to craft your unique badge. (Mock Mint Fee: 1 CHZ)",
-    // });
-    
+    // The fetchGeneratedBadgeArtwork in UserContext already handles necessary checks and toasts.
     await fetchGeneratedBadgeArtwork();
-    // Success or error toasts related to AI artwork generation are now handled within fetchGeneratedBadgeArtwork in UserContext.
   };
 
   if (!isWalletConnected) {
@@ -75,6 +44,29 @@ export default function FanCredDashboard() {
     );
   }
 
+  // Wallet is connected, but check if on correct network
+   if (!isOnCorrectNetwork) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-secondary/30">
+        <Header />
+        <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center justify-center">
+          <div className="bg-card p-8 rounded-lg shadow-xl text-center max-w-md">
+            <Info className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-2xl font-headline text-destructive mb-2">Wrong Network</h2>
+            <p className="text-muted-foreground mb-6">
+              Your wallet is connected, but you are not on the Chiliz Spicy Testnet. 
+              Please switch networks in your wallet or use the button in the header.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              FanCred AI features are only available on the Chiliz Spicy Testnet (Chain ID: 88882).
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Wallet connected AND on the correct network
   return (
     <TooltipProvider>
       <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-secondary/30">
@@ -164,3 +156,4 @@ export default function FanCredDashboard() {
     </TooltipProvider>
   );
 }
+
