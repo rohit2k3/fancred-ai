@@ -1,17 +1,7 @@
-// src/contexts/UserContext.tsx
 "use client";
 
 import type { ReactNode } from 'react';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { 
-  useAddress, 
-  useConnectionStatus, 
-  useChainId, 
-  useSwitchChain, 
-  useMetamask,
-  useDisconnect
-} from '@thirdweb-dev/react';
-import { ChilizSpicy } from '@thirdweb-dev/chains';
 import { aiGenerateBadgeArtwork, type AiGenerateBadgeArtworkInput } from '@/ai/flows/ai-generate-badge-artwork';
 import { generateFanQuote, type MintYourMomentInput } from '@/ai/flows/mint-your-moment';
 import { improveFanScoreSuggestions, type ImproveFanScoreSuggestionsInput } from '@/ai/flows/improve-fan-score-suggestions';
@@ -77,12 +67,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<UserState>(initialState);
   const { toast } = useToast();
 
-  const thirdwebAddress = useAddress();
-  const connectionStatus = useConnectionStatus();
-  const thirdwebChainId = useChainId();
-  const switchChain = useSwitchChain();
-  const connectWithMetamask = useMetamask();
-  const disconnectThirdwebWallet = useDisconnect();
 
   const calculateFanLevel = (score: number): string => {
     if (score < 300) return "Rookie";
@@ -115,99 +99,39 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [toast]);
   
-  // Update local state based on Thirdweb's connection status and address
-  useEffect(() => {
-    const isConnected = connectionStatus === 'connected' && !!thirdwebAddress;
-    const currentAddress = thirdwebAddress || null;
-
-    setState(prevState => ({
-      ...prevState,
-      isWalletConnected: isConnected,
-      walletAddress: currentAddress,
-    }));
-
-    if (isConnected && currentAddress) {
-        if (thirdwebChainId !== ChilizSpicy.chainId) {
-            toast({ variant: "destructive", title: "Wrong Network", description: "Please switch to Chiliz Spicy Testnet.", duration: 5000 });
-             setState(prevState => ({ ...prevState, isWalletConnected: false, superfanScore: 0, fanLevel: "Rookie"})); // Mark as not fully usable
-        } else {
-            fetchScoreForWallet(currentAddress);
-        }
-    } else if (connectionStatus === 'disconnected') {
-      // Reset app-specific user data when Thirdweb reports disconnection
-      setState(prevState => ({
-        ...prevState,
-        superfanScore: 0,
-        fanLevel: "Rookie",
-        generatedBadgeArtwork: null,
-        generatedQuote: null,
-        aiSuggestions: [],
-        fanAnalysis: null,
-        nftsHeld: 0,
-        ritualsCompleted: 0,
-        chzBalance: 0,
-      }));
-    }
-  }, [thirdwebAddress, connectionStatus, thirdwebChainId, fetchScoreForWallet, toast]);
 
 
   const connectWallet = async () => {
-    if (state.isConnecting || connectionStatus === 'connecting') return;
+    // Implementation for connecting the wallet
     setState(prevState => ({ ...prevState, isConnecting: true }));
-
     try {
-      if (connectionStatus !== 'connected') {
-        await connectWithMetamask(); 
-        // Connection status and address will be updated by the useEffect above
-        // We need to wait for the connection to establish and then check the chain.
-        // Thirdweb's connect hooks usually handle the modal.
+      const { address, connected } = await window.thirdweb.connectWallet(); // Assuming thirdweb is available globally
+      if (connected) {
+        setState(prevState => ({
+          ...prevState,
+          walletAddress: address,
+          isWalletConnected: true,
+          isConnecting: false,
+        }));
+        await fetchScoreForWallet(address);
+        toast({ title: "Wallet Connected", description: `Connected to ${address}` });
+      } else {
+        throw new Error("Wallet connection failed");
       }
-      
-      // After attempting connection, check chain (useEffect will also do this, but explicit check can be good)
-      // This part might be redundant if useEffect handles it well.
-      const currentAddress = useAddress(); // get fresh address
-      const currentChain = useChainId(); // get fresh chain
-      
-      if (currentAddress && currentChain) {
-        if (currentChain !== ChilizSpicy.chainId) {
-          toast({ title: "Network Switch Required", description: "Attempting to switch to Chiliz Spicy Testnet..." });
-          try {
-            await switchChain(ChilizSpicy.chainId);
-             toast({ title: "Network Switched", description: "Successfully switched to Chiliz Spicy Testnet." });
-          } catch (error) {
-            console.error("Error switching chain:", error);
-            toast({ variant: "destructive", title: "Network Switch Failed", description: "Could not switch to Chiliz Spicy Testnet. Please do it manually." });
-            setState(prevState => ({ ...prevState, isConnecting: false }));
-            return;
-          }
-        }
-        // Score fetching will be handled by the useEffect watching thirdwebAddress and connectionStatus
-      } else if(connectionStatus === 'connected' && !currentAddress) {
-        // This case should ideally not happen if thirdweb connection is successful
-        toast({ variant: "destructive", title: "Connection Error", description: "Connected but no address found." });
-      }
-
     } catch (error) {
       console.error("Error connecting wallet:", error);
-      toast({ variant: "destructive", title: "Connection Failed", description: (error as Error).message || "An unexpected error occurred." });
-    } finally {
       setState(prevState => ({ ...prevState, isConnecting: false }));
+      toast({ variant: "destructive", title: "Wallet Connection Failed", description: (error as Error).message });
     }
   };
 
   const disconnectWallet = async () => {
-    try {
-      await disconnectThirdwebWallet();
-      toast({ title: "Wallet Disconnected" });
-      // State reset is handled by the useEffect watching connectionStatus
-    } catch (error) {
-        console.error("Error disconnecting wallet:", error);
-        toast({ variant: "destructive", title: "Disconnection Failed", description: "Could not disconnect wallet." });
-    }
+    setState(initialState);
+    toast({ title: "Wallet Disconnected", description: "You have successfully disconnected your wallet." });
   };
   
   const updateScoreOnAction = async (actionType: 'complete_ritual' | 'acquire_nft') => {
-    if (!state.walletAddress || !state.isWalletConnected || thirdwebChainId !== ChilizSpicy.chainId) {
+    if (!state.walletAddress || !state.isWalletConnected ) {
       toast({ variant: "destructive", title: "Action Failed", description: "Wallet not connected or on wrong network." });
       return;
     }
@@ -245,7 +169,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchGeneratedBadgeArtwork = async () => {
-    if (!state.isWalletConnected || !state.walletAddress || thirdwebChainId !== ChilizSpicy.chainId) {
+    if (!state.isWalletConnected || !state.walletAddress) {
       toast({ variant: "destructive", title: "Artwork Failed", description: "Connect to Chiliz Spicy Testnet first." });
       return;
     }
@@ -272,7 +196,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchGeneratedQuote = async (fanActivity: string) => {
-     if (!state.isWalletConnected || !state.walletAddress || thirdwebChainId !== ChilizSpicy.chainId) {
+     if (!state.isWalletConnected || !state.walletAddress ) {
       toast({ variant: "destructive", title: "Quote Failed", description: "Connect to Chiliz Spicy Testnet first." });
       return;
     }
@@ -294,7 +218,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchAiSuggestions = async () => {
-    if (!state.isWalletConnected || !state.walletAddress || thirdwebChainId !== ChilizSpicy.chainId) {
+    if (!state.isWalletConnected || !state.walletAddress ) {
        toast({ variant: "destructive", title: "Suggestions Failed", description: "Connect to Chiliz Spicy Testnet first." });
       return;
     }
@@ -315,7 +239,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchFanAnalysis = async () => {
-    if (!state.isWalletConnected || !state.walletAddress || thirdwebChainId !== ChilizSpicy.chainId) {
+    if (!state.isWalletConnected || !state.walletAddress) {
       toast({ variant: "destructive", title: "Analysis Failed", description: "Connect to Chiliz Spicy Testnet first." });
       return;
     }
