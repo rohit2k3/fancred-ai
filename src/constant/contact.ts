@@ -23,5 +23,4 @@ export const wallets = [
   inAppWallet(),
   createWallet("io.metamask"),
   createWallet("io.zerion.wallet"),
-  // createWallet("io.")
 ];
