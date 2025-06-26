@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { UserProvider } from '@/contexts/UserContext';
-import { ThirdwebProvider, metamaskWallet } from "@thirdweb-dev/react";
-import { ChilizSpicy } from "@thirdweb-dev/chains";
+import { ThirdwebProvider } from "thirdweb/react";
+// import { ChilizSpicy } from "@thirdweb-dev/chains";
 
 export const metadata: Metadata = {
   title: 'FanCred AI',
@@ -45,11 +45,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col">
-        <ThirdwebProvider
-          activeChain={ChilizSpicy}
-          supportedWallets={[metamaskWallet()]}
-          clientId={thirdwebClientId || "YOUR_THIRDWEB_CLIENT_ID"} // Fallback to placeholder if undefined
-        >
+        <ThirdwebProvider>
           <UserProvider>
             {children}
             <Toaster />
