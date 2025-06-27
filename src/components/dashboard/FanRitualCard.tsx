@@ -58,18 +58,18 @@ const FanRitualCard = () => {
         if (!isLoadingScore) { // Check if score update has finished
             toast({
                 title: "Ritual Effects (Mock)",
-                description: `Your fan badge is now 'Blessed by ${ritual.emoji} ${Math.floor(Math.random() * 10) + 1}x Fans'! (Simulated metadata update)`,
+                description: `Your fan badge is now 'Blessed by ${ritual.emoji} ${Math.floor(Math.random() * 10) + 1} Fans'! (Simulated metadata update)`,
             });
         }
     }, 500); // Short delay to allow score update toast to appear first
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full relative">
+    <Card className="w-full relative">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <Users className="h-6 w-6 text-primary" />
-          <CardTitle className="text-xl font-headline">Fan Collab Rituals</CardTitle>
+          <CardTitle className="text-xl font-bold">Fan Collab Rituals</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -114,7 +114,7 @@ const FanRitualCard = () => {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-4 border-t">
+      <CardFooter className="pt-4 border-t border-white/10">
         <Button onClick={handlePerformRitual} className="w-full" disabled={!isWalletConnected || !selectedRitualValue || isLoadingScore}>
           {isLoadingScore ? <LoadingSpinner size="sm" className="mr-2" /> : <Zap className="mr-2 h-4 w-4" />}
           Perform Ritual & Boost Score
@@ -122,7 +122,7 @@ const FanRitualCard = () => {
       </CardFooter>
 
       {!isWalletConnected && (
-         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 rounded-lg">
+         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-4 rounded-2xl">
             <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
             <p className="text-lg font-semibold text-center mb-2">Wallet Not Connected</p>
             <p className="text-sm text-muted-foreground text-center">Please connect your wallet to participate in Fan Collab Rituals.</p>

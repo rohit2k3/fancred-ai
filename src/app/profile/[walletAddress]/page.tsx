@@ -64,7 +64,7 @@ export default function FanProfilePage() {
   }, [walletAddress]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-secondary/30">
+    <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         {isLoading && (
@@ -74,7 +74,7 @@ export default function FanProfilePage() {
           </div>
         )}
         {error && (
-            <Card className="max-w-2xl mx-auto shadow-xl">
+            <Card className="max-w-2xl mx-auto">
                 <CardHeader>
                     <CardTitle className="text-destructive text-center">Error</CardTitle>
                 </CardHeader>
@@ -89,8 +89,8 @@ export default function FanProfilePage() {
             </Card>
         )}
         {!isLoading && !error && profileData && (
-          <Card className="max-w-3xl mx-auto shadow-2xl overflow-hidden">
-            <CardHeader className="bg-card-foreground/5 p-6 border-b">
+          <Card className="max-w-3xl mx-auto overflow-hidden">
+            <CardHeader className="bg-white/5 p-6 border-b border-white/10">
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 {profileData.badgeArtworkUrl ? (
                   <Image
@@ -105,7 +105,7 @@ export default function FanProfilePage() {
                   <UserCircle className="h-24 w-24 text-primary" />
                 )}
                 <div>
-                  <CardTitle className="text-3xl font-headline text-primary">
+                  <CardTitle className="text-3xl font-bold text-primary">
                     Fan Profile
                   </CardTitle>
                   <CardDescription className="text-sm text-muted-foreground mt-1 font-mono break-all">
@@ -117,22 +117,22 @@ export default function FanProfilePage() {
             </CardHeader>
             <CardContent className="p-6 grid gap-6">
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="p-4 bg-muted/30 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold flex items-center text-accent mb-2">
+                <div className="p-4 bg-white/5 rounded-lg shadow-inner">
+                  <h3 className="text-lg font-semibold flex items-center text-primary mb-2">
                     <BarChart2 className="mr-2 h-5 w-5" /> Superfan Score
                   </h3>
                   <p className="text-4xl font-bold text-primary">{profileData.superfanScore}</p>
                 </div>
-                <div className="p-4 bg-muted/30 rounded-lg shadow">
-                  <h3 className="text-lg font-semibold flex items-center text-accent mb-2">
+                <div className="p-4 bg-white/5 rounded-lg shadow-inner">
+                  <h3 className="text-lg font-semibold flex items-center text-primary mb-2">
                     <Award className="mr-2 h-5 w-5" /> Fan Level
                   </h3>
                   <p className="text-3xl font-bold">{profileData.fanLevel}</p>
                 </div>
               </div>
 
-              <div className="p-4 bg-muted/30 rounded-lg shadow">
-                <h3 className="text-lg font-semibold flex items-center text-accent mb-2">
+              <div className="p-4 bg-white/5 rounded-lg shadow-inner">
+                <h3 className="text-lg font-semibold flex items-center text-primary mb-2">
                   <ShieldCheck className="mr-2 h-5 w-5" /> On-Chain Stats
                 </h3>
                 <ul className="space-y-1 text-sm">
@@ -145,8 +145,8 @@ export default function FanProfilePage() {
               </div>
 
               {profileData.fandomTraits && (
-                <div className="p-4 bg-muted/30 rounded-lg shadow">
-                    <h3 className="text-lg font-semibold flex items-center text-accent mb-2">
+                <div className="p-4 bg-white/5 rounded-lg shadow-inner">
+                    <h3 className="text-lg font-semibold flex items-center text-primary mb-2">
                         Fandom Identity
                     </h3>
                     <p className="text-sm italic">"{profileData.fandomTraits}"</p>
@@ -164,7 +164,7 @@ export default function FanProfilePage() {
           </Card>
         )}
       </main>
-      <footer className="py-6 text-center text-sm text-muted-foreground border-t">
+      <footer className="py-6 text-center text-sm text-muted-foreground border-t border-white/10">
           FanCred AI &copy; {new Date().getFullYear()} - View Only Profile
       </footer>
     </div>

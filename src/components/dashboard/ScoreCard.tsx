@@ -12,15 +12,15 @@ const ScoreCard = () => {
   const progressValue = Math.min((superfanScore / 1000) * 100, 100); // Assuming max score is 1000
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-headline">Your Superfan Score</CardTitle>
+        <CardTitle className="text-xl font-bold">Your Superfan Score</CardTitle>
         <Trophy className="h-6 w-6 text-primary" />
       </CardHeader>
       <CardContent>
         <div className="text-5xl font-bold text-primary">{superfanScore}</div>
         <p className="text-sm text-muted-foreground mt-1">
-          Current Level: <span className="font-semibold text-accent">{fanLevel}</span>
+          Current Level: <span className="font-semibold text-accent-foreground">{fanLevel}</span>
         </p>
         <Progress value={progressValue} className="w-full mt-4 h-3" aria-label={`Superfan score progress: ${progressValue}%`} />
         <CardDescription className="mt-2 text-xs">

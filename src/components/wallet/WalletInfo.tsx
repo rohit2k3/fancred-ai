@@ -26,10 +26,14 @@ const WalletInfo = () => {
       client={client}
       theme={darkTheme({
         colors: {
-          primaryButtonBg: "#9b87f5",
+          primaryButtonBg: "hsl(263.4 95.3% 53.5%)",
           primaryButtonText: "white",
-          secondaryButtonBg: "transparent",
-          secondaryButtonText: "#9b87f5",
+          secondaryButtonBg: "hsl(215 27.9% 16.9%)",
+          secondaryButtonText: "white",
+          connectedButtonBg: "hsl(215 27.9% 16.9%)",
+          modalBg: "#0d1120",
+          dropdownBg: "#0d1120",
+          borderColor: "hsla(0,0%,100%,0.1)"
         },
       })}
       chain={{
@@ -49,4 +53,3 @@ const WalletInfo = () => {
 };
 
 export default WalletInfo;
-

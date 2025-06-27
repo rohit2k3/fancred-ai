@@ -49,7 +49,7 @@ const LeaderboardCard = () => {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <ListOrdered className="h-6 w-6 text-primary" />
-          <CardTitle className="text-xl font-headline">Fan Leaderboard</CardTitle>
+          <CardTitle className="text-xl font-bold">Fan Leaderboard</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -70,7 +70,7 @@ const LeaderboardCard = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="border-white/10">
                   <TableHead className="w-[50px] text-center">Rank</TableHead>
                   <TableHead>Fan</TableHead>
                   <TableHead className="text-right">Score</TableHead>
@@ -81,7 +81,7 @@ const LeaderboardCard = () => {
                 {leaderboardData.map((fan) => (
                   <TableRow 
                     key={fan.rank} 
-                    className={fan.walletAddress.toLowerCase() === currentUserAddress?.toLowerCase() ? 'bg-primary/10' : ''}
+                    className={`border-white/10 ${fan.walletAddress.toLowerCase() === currentUserAddress?.toLowerCase() ? 'bg-primary/10' : ''}`}
                   >
                     <TableCell className="font-medium text-center">{fan.rank}</TableCell>
                     <TableCell>
@@ -98,9 +98,9 @@ const LeaderboardCard = () => {
                     <TableCell>
                       <span
                         className={`px-2 py-1 text-xs rounded-full font-medium
-                          ${fan.fanLevel === 'Legend' ? 'bg-yellow-400/20 text-yellow-600' :
-                            fan.fanLevel === 'Pro' ? 'bg-blue-400/20 text-blue-600' :
-                            'bg-green-400/20 text-green-600'}`}
+                          ${fan.fanLevel === 'Legend' ? 'bg-primary/20 text-primary' :
+                            fan.fanLevel === 'Pro' ? 'bg-accent/20 text-accent-foreground' :
+                            'bg-secondary/80 text-secondary-foreground'}`}
                       >
                         {fan.fanLevel}
                       </span>

@@ -14,13 +14,13 @@ const ConnectWalletPrompt = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md">
         <CardHeader>
           <div className="mx-auto bg-primary/10 p-3 rounded-full mb-4 w-fit">
             <Zap className="h-10 w-10 text-primary" />
           </div>
-          <CardTitle className="text-3xl font-headline text-center">Unlock Your Fan Power</CardTitle>
-          <CardDescription className="text-center text-lg">
+          <CardTitle className="text-3xl font-bold text-center">Unlock Your Fan Power</CardTitle>
+          <CardDescription className="text-center text-lg text-muted-foreground">
             Connect your wallet to discover your Superfan Score, mint exclusive badges, and get AI-powered insights!
           </CardDescription>
         </CardHeader>
@@ -49,4 +49,3 @@ const ConnectWalletPrompt = () => {
 };
 
 export default ConnectWalletPrompt;
-

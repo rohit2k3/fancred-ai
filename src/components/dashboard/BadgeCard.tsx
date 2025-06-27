@@ -69,9 +69,9 @@ const BadgeCard = ({ onMintBadgeClick }: { onMintBadgeClick: () => Promise<void>
 
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between min-h-[350px]">
+    <Card className="flex flex-col justify-between min-h-[350px]">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-headline">Your Fan Badge</CardTitle>
+        <CardTitle className="text-xl font-bold">Your Fan Badge</CardTitle>
         <Award className="h-6 w-6 text-primary" />
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center flex-grow min-h-[200px]">
@@ -110,14 +110,14 @@ const BadgeCard = ({ onMintBadgeClick }: { onMintBadgeClick: () => Promise<void>
         )}
       </CardContent>
       {generatedBadgeArtwork && mintDate && !isLoadingAiArtwork && !isMinting && (
-        <CardFooter className="flex-col items-start text-sm pt-4 border-t">
-            <div className="font-semibold text-foreground">Level: <span className="text-accent">{fanLevel}</span></div>
+        <CardFooter className="flex-col items-start text-sm pt-4 border-t border-white/10">
+            <div className="font-semibold text-foreground">Level: <span className="text-accent-foreground">{fanLevel}</span></div>
             <div className="text-muted-foreground">Score: {superfanScore}</div>
             <div className="text-muted-foreground">Minted: {mintDate} (Mock)</div>
         </CardFooter>
       )}
        {(isMinting || isLoadingAiArtwork) && !generatedBadgeArtwork && ( // Show a simplified footer during loading if no badge yet
-        <CardFooter className="flex-col items-start text-sm pt-4 border-t">
+        <CardFooter className="flex-col items-start text-sm pt-4 border-t border-white/10">
             <div className="text-muted-foreground text-xs">Badge details will appear here after generation.</div>
         </CardFooter>
       )}

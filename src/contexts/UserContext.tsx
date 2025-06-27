@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useActiveAccount,
   useActiveWalletConnectionStatus,
+  useActiveWallet,
   useActiveWalletChain
 } from "thirdweb/react";
 import { chilizChainId } from "@/constant/contact";
@@ -100,6 +101,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const status = useActiveWalletConnectionStatus();
   const activeAccount = useActiveAccount();
+  const activeWallet = useActiveWallet();
   const activeChain = useActiveWalletChain();
 
   useEffect(() => {
@@ -123,7 +125,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             ritualsCompleted: 0,
             chzBalance: 0,
         }));
-      } else if (!isConnected && !isConnecting) {
+      } else if (status === 'disconnected') {
         // Disconnected
         setState(initialState);
       }
