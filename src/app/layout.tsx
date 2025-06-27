@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { UserProvider } from '@/contexts/UserContext';
 import { ThirdwebProvider } from "thirdweb/react";
-// import { ChilizSpicy } from "@thirdweb-dev/chains";
+import { ThemeProvider } from '@/components/layout/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'FanCred AI',
@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -45,15 +45,22 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col relative">
         <div className="absolute top-0 left-0 w-full h-full bg-background -z-10">
-          <div className="absolute bottom-0 left-[-20%] right-0 top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(30,115,242,0.5),rgba(255,255,255,0))]"></div>
-          <div className="absolute bottom-0 right-[-20%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(30,115,242,0.4),rgba(255,255,255,0))]"></div>
+          <div className="absolute bottom-0 left-[-20%] right-0 top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(230,57,70,0.4),rgba(255,255,255,0))]"></div>
+          <div className="absolute bottom-0 right-[-20%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(230,57,70,0.3),rgba(255,255,255,0))]"></div>
         </div>
-        <ThirdwebProvider>
-          <UserProvider>
-            {children}
-            <Toaster />
-          </UserProvider>
-        </ThirdwebProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ThirdwebProvider>
+            <UserProvider>
+              {children}
+              <Toaster />
+            </UserProvider>
+          </ThirdwebProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
