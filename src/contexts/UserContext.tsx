@@ -88,6 +88,7 @@ const initialState: UserState = {
   nftsHeld: 0,
   ritualsCompleted: 0,
   chzBalance: 0,
+  isOnCorrectNetwork: false,
 };
 
 const UserContext = createContext<(UserState & UserActions) | undefined>(
@@ -96,50 +97,41 @@ const UserContext = createContext<(UserState & UserActions) | undefined>(
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<UserState>(initialState);
-  const [isOnCorrectNetwork , setIsOnCorrectNetwork] = useState(false);
   const { toast } = useToast();
   const status = useActiveWalletConnectionStatus();
   const activeAccount = useActiveAccount();
   const activeChain = useActiveWalletChain();
-  console.log("state", state);
 
   useEffect(() => {
     const handleStatusChange = async () => {
-      switch (status) {
-        case "connected":
-          setState((prevState) => ({
-            ...prevState,
-            isWalletConnected: true,
-            isConnecting: false,
-            walletAddress: activeAccount?.address || null,
-          }));
-          await fetchScoreForWallet(activeAccount?.address || "");
-          console.log(activeChain);
-          setIsOnCorrectNetwork(activeChain?.id === chilizChainId)
-          break;
-        case "disconnected":
-          setState((prevState) => ({
-            ...prevState,
-            isWalletConnected: false,
-            isConnecting: false,
-          }));
-          break;
-        case "connecting":
-          setState((prevState) => ({ ...prevState, isConnecting: true }));
-          break;
-        default:
-          setState((prevState) => ({
-            ...prevState,
-            isConnecting: false,
-            isWalletConnected: false,
-          }));
+      const isConnecting = status === 'connecting';
+      const isConnected = status === 'connected';
+      const address = activeAccount?.address || null;
+      const isChainCorrect = activeChain?.id === chilizChainId;
+      
+      setState(prevState => ({ ...prevState, isConnecting, isWalletConnected: isConnected, walletAddress: address, isOnCorrectNetwork: isChainCorrect }));
+
+      if (isConnected && address && isChainCorrect) {
+        await fetchScoreForWallet(address);
+      } else if (isConnected && (!address || !isChainCorrect)) {
+        // Connected, but wrong chain or no address, clear score info
+        setState(prevState => ({ 
+            ...prevState, 
+            superfanScore: 0,
+            fanLevel: "Rookie",
+            nftsHeld: 0,
+            ritualsCompleted: 0,
+            chzBalance: 0,
+        }));
+      } else if (!isConnected && !isConnecting) {
+        // Disconnected
+        setState(initialState);
       }
     };
 
     handleStatusChange();
-  }, [status, activeAccount]);
+  }, [status, activeAccount, activeChain]);
 
-  console.log("UserProvider status:", status);
 
   const calculateFanLevel = (score: number): string => {
     if (score < 300) return "Rookie";
@@ -149,8 +141,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchScoreForWallet = useCallback(
     async (address: string) => {
-      console.log("Fetching score for wallet:", address);
-      
+      if (!address) return;
       setState((prevState) => ({ ...prevState, isLoadingScore: true }));
       try {
         const response = await fetch(`/api/score?walletAddress=${address}`);
@@ -173,7 +164,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         toast({
           variant: "destructive",
           title: "Score Fetch Failed",
-          description: (error as Error).message,
+          description: "Could not retrieve your on-chain data. Please try again later.",
         });
         setState((prevState) => ({
           ...prevState,
@@ -190,27 +181,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const connectWallet = async () => {
-    // Implementation for connecting the wallet
-    setState((prevState) => ({ ...prevState, isConnecting: true }));
-    try {
-      await fetchScoreForWallet(state.walletAddress || "");
-      toast({
-        title: "Wallet Connected",
-        description: `Connected to ${state.walletAddress}`,
-      });
-    } catch (error) {
-      console.error("Error connecting wallet:", error);
-      setState((prevState) => ({ ...prevState, isConnecting: false }));
-      toast({
-        variant: "destructive",
-        title: "Wallet Connection Failed",
-        description: (error as Error).message,
-      });
-    }
+    // This function is now primarily handled by the Thirdweb ConnectButton
+    // and the useEffect hook that listens to connection status changes.
+    // Kept here for any potential manual trigger points.
+    toast({ title: "Connecting...", description: "Please follow the prompts in your wallet." });
   };
 
   const disconnectWallet = async () => {
-    setState(initialState);
+    // This is handled by the Thirdweb ConnectButton.
+    // The state will reset via the useEffect hook.
     toast({
       title: "Wallet Disconnected",
       description: "You have successfully disconnected your wallet.",
@@ -220,55 +199,21 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const updateScoreOnAction = async (
     actionType: "complete_ritual" | "acquire_nft"
   ) => {
-    if (!state.walletAddress || !state.isWalletConnected) {
+    if (!state.walletAddress) {
       toast({
         variant: "destructive",
         title: "Action Failed",
-        description: "Wallet not connected or on wrong network.",
+        description: "Wallet not connected.",
       });
       return;
     }
-    setState((prevState) => ({ ...prevState, isLoadingScore: true }));
-    try {
-      const response = await fetch("/api/score", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: state.walletAddress,
-          action: actionType,
-        }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update score");
-      }
-      const data = await response.json();
-      setState((prevState) => ({
-        ...prevState,
-        superfanScore: data.score,
-        fanLevel: calculateFanLevel(data.score),
-        nftsHeld:
-          data.nftsHeld !== undefined ? data.nftsHeld : prevState.nftsHeld,
-        ritualsCompleted:
-          data.ritualsCompleted !== undefined
-            ? data.ritualsCompleted
-            : prevState.ritualsCompleted,
-        chzBalance:
-          data.chzBalance !== undefined
-            ? data.chzBalance
-            : prevState.chzBalance,
-        isLoadingScore: false,
-      }));
-      toast({ title: "Score Updated!", description: data.message });
-    } catch (error) {
-      console.error("Error updating score:", error);
-      toast({
-        variant: "destructive",
-        title: "Score Update Failed",
-        description: (error as Error).message,
-      });
-      setState((prevState) => ({ ...prevState, isLoadingScore: false }));
-    }
+    // Since the API now fetches live on-chain data, we just need to re-fetch the score.
+    // The `ritualsCompleted` part is mocked in the API and would need a database to be stateful.
+    toast({
+      title: "Action Recorded (Mock)",
+      description: `Refreshing your score based on your latest on-chain data...`,
+    });
+    await fetchScoreForWallet(state.walletAddress);
   };
 
   const setFandomTraits = (traits: string) => {
@@ -432,7 +377,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         title: "Analysis Failed",
         description: "Please define your fandom traits for a better analysis.",
       });
-      // return; // Decide if this should block or proceed with partial info
     }
     setState((prevState) => ({
       ...prevState,
@@ -484,7 +428,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         fetchAiSuggestions,
         fetchFanAnalysis,
         updateScoreOnAction,
-        isOnCorrectNetwork
       }}
     >
       {children}
