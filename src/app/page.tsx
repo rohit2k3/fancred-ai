@@ -17,11 +17,11 @@ import FanMarketplaceCard from '@/components/dashboard/FanMarketplaceCard';
 import { Button } from '@/components/ui/button';
 import { useToast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info, User } from 'lucide-react';
+import { Info, User, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function FanCredDashboard() {
-  const { isWalletConnected, isOnCorrectNetwork, fetchGeneratedBadgeArtwork, walletAddress } = useUser();
+  const { isWalletConnected, isOnCorrectNetwork, fetchGeneratedBadgeArtwork, walletAddress, switchToCorrectNetwork } = useUser();
 
   const handleMintBadge = async () => {
     // The fetchGeneratedBadgeArtwork in UserContext already handles necessary checks and toasts.
@@ -45,14 +45,17 @@ export default function FanCredDashboard() {
       <div className="flex flex-col min-h-screen">
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center justify-center">
-          <div className="bg-card p-8 rounded-2xl shadow-xl text-center max-w-md border border-white/10">
-            <Info className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-destructive mb-2">Wrong Network</h2>
+          <div className="bg-card p-8 rounded-2xl shadow-xl text-center max-w-md border border-white/10 animate-fade-in-up">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-destructive mb-2">Wrong Network Detected</h2>
             <p className="text-muted-foreground mb-6">
-              Your wallet is connected, but you are not on the Chiliz Spicy Testnet. 
-              Please switch networks in your wallet or use the button in the header.
+              Your wallet is connected, but you're not on the Chiliz Spicy Testnet. 
+              Please switch networks in your wallet or use the button below.
             </p>
-            <p className="text-xs text-muted-foreground">
+             <Button onClick={switchToCorrectNetwork}>
+                Switch to Chiliz Spicy
+             </Button>
+            <p className="text-xs text-muted-foreground mt-4">
               FanCred AI features are only available on the Chiliz Spicy Testnet (Chain ID: 88882).
             </p>
           </div>
@@ -69,35 +72,35 @@ export default function FanCredDashboard() {
         <main className="flex-grow container mx-auto px-4 py-8">
           <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             
-            <div className="lg:col-span-1 xl:col-span-1">
+            <div className="lg:col-span-1 xl:col-span-1 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
               <ScoreCard />
             </div>
 
-            <div className="lg:col-span-1 xl:col-span-1">
+            <div className="lg:col-span-1 xl:col-span-1 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
               <BadgeCard onMintBadgeClick={handleMintBadge} />
             </div>
 
-            <div id="fandom-traits-card" className="lg:col-span-2 xl:col-span-2 row-start-2 md:row-start-auto md:col-start-1 lg:col-start-auto xl:row-start-1 xl:col-start-3">
+            <div id="fandom-traits-card" className="lg:col-span-2 xl:col-span-2 row-start-2 md:row-start-auto md:col-start-1 lg:col-start-auto xl:row-start-1 xl:col-start-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
               <FandomTraitsInput />
             </div>
             
-            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4">
+            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
               <AiAssistant />
             </div>
 
-            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2">
+            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
               <MintYourMoment />
             </div>
             
-            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2"> 
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 animate-fade-in-up" style={{ animationDelay: '600ms' }}> 
               <FanRitualCard />
             </div>
             
-            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2">
+            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2 animate-fade-in-up" style={{ animationDelay: '700ms' }}>
                 <FanMarketplaceCard />
             </div>
 
-            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center relative">
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center relative animate-fade-in-up" style={{ animationDelay: '800ms' }}>
                 <h3 className="text-xl font-bold mb-2 text-primary">Fan Staking Vault</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                     Boost your FanCred! Stake CHZ to earn exclusive perks and increase your Superfan Score.
@@ -115,12 +118,12 @@ export default function FanCredDashboard() {
                 </Tooltip>
             </div>
 
-            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4">
+            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 animate-fade-in-up" style={{ animationDelay: '900ms' }}>
               <LeaderboardCard />
             </div>
 
             {walletAddress && (
-              <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center text-center relative">
+              <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center relative animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
                   <h3 className="text-xl font-bold mb-2 text-primary">Your Fan Profile</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                       Share your FanCred status with the world!
@@ -144,7 +147,7 @@ export default function FanCredDashboard() {
 
           </div>
         </main>
-        <footer className="py-6 text-center text-sm text-muted-foreground border-t border-white/10">
+        <footer className="py-6 text-center text-sm text-muted-foreground border-t border-white/10 mt-12">
           FanCred AI &copy; {new Date().getFullYear()} - Chiliz Vibe Hackathon
         </footer>
       </div>

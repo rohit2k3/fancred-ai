@@ -44,9 +44,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;700;900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased min-h-screen flex flex-col relative">
-         <div className="absolute top-0 left-0 w-full h-full bg-background -z-10">
-          <div className="absolute bottom-0 left-[-20%] right-0 top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(124,58,237,0.8),rgba(255,255,255,0))]"></div>
-          <div className="absolute bottom-0 right-[-20%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(124,58,237,0.8),rgba(255,255,255,0))]"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-background -z-10">
+          <div className="absolute bottom-0 left-[-20%] right-0 top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(30,115,242,0.5),rgba(255,255,255,0))]"></div>
+          <div className="absolute bottom-0 right-[-20%] top-[-10%] h-[500px] w-[500px] rounded-full bg-[radial-gradient(circle_farthest-side,rgba(30,115,242,0.4),rgba(255,255,255,0))]"></div>
         </div>
         <ThirdwebProvider>
           <UserProvider>

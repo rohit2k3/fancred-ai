@@ -26,13 +26,13 @@ const WalletInfo = () => {
       client={client}
       theme={darkTheme({
         colors: {
-          primaryButtonBg: "hsl(263.4 95.3% 53.5%)",
+          primaryButtonBg: "hsl(217 91% 60%)",
           primaryButtonText: "white",
-          secondaryButtonBg: "hsl(215 27.9% 16.9%)",
+          secondaryButtonBg: "hsl(217 33% 17%)",
           secondaryButtonText: "white",
-          connectedButtonBg: "hsl(215 27.9% 16.9%)",
-          modalBg: "#0d1120",
-          dropdownBg: "#0d1120",
+          connectedButtonBg: "hsl(217 33% 17%)",
+          modalBg: "hsl(222 84% 4.9%)",
+          dropdownBg: "hsl(222 84% 4.9%)",
           borderColor: "hsla(0,0%,100%,0.1)"
         },
       })}
