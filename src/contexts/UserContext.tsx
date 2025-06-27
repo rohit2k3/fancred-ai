@@ -29,12 +29,13 @@ import { useToast } from "@/hooks/use-toast";
 import {
   useActiveAccount,
   useActiveWalletConnectionStatus,
+  useActiveWalletChain
 } from "thirdweb/react";
-import { log } from "node:console";
+import { chilizChainId } from "@/constant/contact";
 
 interface UserState {
   walletAddress: string | null;
-  isWalletConnected: boolean; 
+  isWalletConnected: boolean; // Derived from Thirdweb's connectionStatus
   superfanScore: number;
   fanLevel: string;
   fandomTraits: string;
@@ -47,11 +48,11 @@ interface UserState {
   isLoadingAiQuote: boolean;
   isLoadingAiSuggestions: boolean;
   isLoadingFanAnalysis: boolean;
-  isConnecting: boolean; 
+  isConnecting: boolean; // For our app-specific async operations post-connection or during connection attempts
   nftsHeld: number;
   ritualsCompleted: number;
   chzBalance: number;
-  isOnCorrectNetwork: boolean;
+  isOnCorrectNetwork:boolean;
 }
 
 interface UserActions {
@@ -87,7 +88,6 @@ const initialState: UserState = {
   nftsHeld: 0,
   ritualsCompleted: 0,
   chzBalance: 0,
-  isOnCorrectNetwork: false,
 };
 
 const UserContext = createContext<(UserState & UserActions) | undefined>(
@@ -96,9 +96,11 @@ const UserContext = createContext<(UserState & UserActions) | undefined>(
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [state, setState] = useState<UserState>(initialState);
+  const [isOnCorrectNetwork , setIsOnCorrectNetwork] = useState(false);
   const { toast } = useToast();
   const status = useActiveWalletConnectionStatus();
   const activeAccount = useActiveAccount();
+  const activeChain = useActiveWalletChain();
   console.log("state", state);
 
   useEffect(() => {
@@ -112,6 +114,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             walletAddress: activeAccount?.address || null,
           }));
           await fetchScoreForWallet(activeAccount?.address || "");
+          console.log(activeChain);
+          setIsOnCorrectNetwork(activeChain?.id === chilizChainId)
           break;
         case "disconnected":
           setState((prevState) => ({
@@ -142,26 +146,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (score < 700) return "Pro";
     return "Legend";
   };
-
-  const resetUserSessionData = useCallback(() => {
-    setState(prevState => ({
-      ...prevState,
-      superfanScore: 0,
-      fanLevel: "Rookie",
-      generatedBadgeArtwork: null,
-      generatedQuote: null,
-      aiSuggestions: [],
-      fanAnalysis: null,
-      nftsHeld: 0,
-      ritualsCompleted: 0,
-      chzBalance: 0,
-      isLoadingScore: false,
-      isLoadingAiArtwork: false,
-      isLoadingAiQuote: false,
-      isLoadingAiSuggestions: false,
-      isLoadingFanAnalysis: false,
-    }));
-  }, []);
 
   const fetchScoreForWallet = useCallback(
     async (address: string) => {
@@ -203,7 +187,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       }
     },
     [toast]
-  ); 
+  );
 
   const connectWallet = async () => {
     // Implementation for connecting the wallet
@@ -500,6 +484,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         fetchAiSuggestions,
         fetchFanAnalysis,
         updateScoreOnAction,
+        isOnCorrectNetwork
       }}
     >
       {children}
@@ -514,4 +499,3 @@ export const useUser = () => {
   }
   return context;
 };
-
