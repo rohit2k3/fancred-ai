@@ -72,35 +72,35 @@ export default function FanCredDashboard() {
         <main className="flex-grow container mx-auto px-4 py-8">
           <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             
-            <div className="lg:col-span-1 xl:col-span-1 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            <div className="lg:col-span-1 xl:col-span-1 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '100ms' }}>
               <ScoreCard />
             </div>
 
-            <div className="lg:col-span-1 xl:col-span-1 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <div className="lg:col-span-1 xl:col-span-1 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '200ms' }}>
               <BadgeCard onMintBadgeClick={handleMintBadge} />
             </div>
 
-            <div id="fandom-traits-card" className="lg:col-span-2 xl:col-span-2 row-start-2 md:row-start-auto md:col-start-1 lg:col-start-auto xl:row-start-1 xl:col-start-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+            <div id="fandom-traits-card" className="lg:col-span-2 xl:col-span-2 row-start-2 md:row-start-auto md:col-start-1 lg:col-start-auto xl:row-start-1 xl:col-start-3 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '300ms' }}>
               <FandomTraitsInput />
             </div>
             
-            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '400ms' }}>
               <AiAssistant />
             </div>
 
-            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '500ms' }}>
               <MintYourMoment />
             </div>
             
-            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 animate-fade-in-up" style={{ animationDelay: '600ms' }}> 
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '600ms' }}> 
               <FanRitualCard />
             </div>
             
-            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2 animate-fade-in-up" style={{ animationDelay: '700ms' }}>
+            <div className="md:col-span-2 lg:col-span-2 xl:col-span-2 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '700ms' }}>
                 <FanMarketplaceCard />
             </div>
 
-            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center relative animate-fade-in-up" style={{ animationDelay: '800ms' }}>
+            <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center relative animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '800ms' }}>
                 <h3 className="text-xl font-bold mb-2 text-primary">Fan Staking Vault</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                     Boost your FanCred! Stake CHZ to earn exclusive perks and increase your Superfan Score.
@@ -118,12 +118,12 @@ export default function FanCredDashboard() {
                 </Tooltip>
             </div>
 
-            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 animate-fade-in-up" style={{ animationDelay: '900ms' }}>
+            <div className="md:col-span-2 lg:col-span-3 xl:col-span-4 animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '900ms' }}>
               <LeaderboardCard />
             </div>
 
             {walletAddress && (
-              <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center relative animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
+              <div className="md:col-span-2 lg:col-span-1 xl:col-span-2 bg-card p-6 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center relative animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]" style={{ animationDelay: '1000ms' }}>
                   <h3 className="text-xl font-bold mb-2 text-primary">Your Fan Profile</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                       Share your FanCred status with the world!

@@ -1,3 +1,4 @@
+
 // src/components/dashboard/BadgeCard.tsx
 "use client";
 
@@ -83,7 +84,7 @@ const BadgeCard = ({ onMintBadgeClick }: { onMintBadgeClick: () => Promise<void>
           </div>
         )}
         {!isMinting && !isLoadingAiArtwork && generatedBadgeArtwork && (
-          <div className="p-2 border border-primary/20 rounded-lg shadow-inner bg-primary/5 hover:scale-105 transition-transform duration-300">
+          <div className="p-2 border border-primary/20 rounded-lg shadow-inner bg-primary/5 hover:scale-105 transition-transform duration-300 animate-in fade-in-0 zoom-in-90 duration-500">
             <Image 
               src={generatedBadgeArtwork} 
               alt="AI Generated Fan Badge Artwork" 
@@ -102,7 +103,12 @@ const BadgeCard = ({ onMintBadgeClick }: { onMintBadgeClick: () => Promise<void>
             <CardDescription className="mb-4 text-xs">
               Define fandom traits & score 100+ to mint. (Mock Fee: 1 CHZ)
             </CardDescription>
-            <Button onClick={handleInternalMintClick} variant="default" disabled={isLoadingAiArtwork || isMinting || !isWalletConnected}>
+            <Button 
+              onClick={handleInternalMintClick} 
+              variant="default" 
+              disabled={isLoadingAiArtwork || isMinting || !isWalletConnected}
+              className={!generatedBadgeArtwork ? "animate-pulse-glow" : ""}
+            >
               {isLoadingAiArtwork || isMinting ? <LoadingSpinner size="sm" className="mr-2" /> : <Sparkles className="mr-2 h-4 w-4" />}
               Mint Your Badge
             </Button>
