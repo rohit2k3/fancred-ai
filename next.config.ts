@@ -18,11 +18,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    // This resolves the cross-origin request warning in the dev environment.
-    // This is useful for environments like Firebase Studio / Cloud Workstations.
-    allowedDevOrigins: ["*.cloudworkstations.dev"],
-  },
+  // experimental: {
+  //   // This resolves the cross-origin request warning in the dev environment.
+  //   // This is useful for environments like Firebase Studio / Cloud Workstations.
+  //   allowedDevOrigins: ["*.cloudworkstations.dev"],
+  // },
 };
 
 export default nextConfig;

@@ -22,7 +22,7 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 
 export default function FanCredDashboard() {
-  const { isWalletConnected, isOnCorrectNetwork, fetchGeneratedBadgeArtwork, walletAddress, switchToCorrectNetwork } = useUser();
+  const { isWalletConnected, isOnCorrectNetwork, fetchGeneratedBadgeArtwork, walletAddress } = useUser();
 
   const handleMintBadge = async () => {
     await fetchGeneratedBadgeArtwork();
@@ -51,9 +51,9 @@ export default function FanCredDashboard() {
               Your wallet is connected, but you're not on the Chiliz Spicy Testnet. 
               Please switch networks in your wallet or use the button below.
             </p>
-             <Button onClick={switchToCorrectNetwork}>
+             {/* <Button onClick={switchToCorrectNetwork}>
                 Switch to Chiliz Spicy
-             </Button>
+             </Button> */}
             <p className="text-xs text-muted-foreground mt-4">
               FanCred AI features are only available on the Chiliz Spicy Testnet (Chain ID: 88882).
             </p>

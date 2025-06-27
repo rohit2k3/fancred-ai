@@ -30,9 +30,11 @@ import {
   useActiveAccount,
   useActiveWalletConnectionStatus,
   useActiveWallet,
-  useActiveWalletChain
+  useActiveWalletChain,
+  useWalletBalance,
 } from "thirdweb/react";
 import { chilizChainId } from "@/constant/contact";
+import { client } from "@/client";
 
 interface UserState {
   walletAddress: string | null;
@@ -52,8 +54,8 @@ interface UserState {
   isConnecting: boolean; // For our app-specific async operations post-connection or during connection attempts
   nftsHeld: number;
   ritualsCompleted: number;
-  chzBalance: number;
-  isOnCorrectNetwork:boolean;
+  chzBalance: string | number; // Use string to handle large numbers safely
+  isOnCorrectNetwork: boolean;
 }
 
 interface UserActions {
@@ -103,29 +105,49 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const activeAccount = useActiveAccount();
   const activeWallet = useActiveWallet();
   const activeChain = useActiveWalletChain();
+  const { data, isLoading, isError } = useWalletBalance({
+    chain: activeChain,
+    address: state.walletAddress || undefined,
+    client,
+  });
+ 
+  useEffect(() => {
+    setState((prevState) => ({
+      ...prevState,
+      chzBalance: data?.displayValue || '0',
+    }));
+  }, [data]);
 
   useEffect(() => {
     const handleStatusChange = async () => {
-      const isConnecting = status === 'connecting';
-      const isConnected = status === 'connected';
+      const isConnecting = status === "connecting";
+      const isConnected = status === "connected";
       const address = activeAccount?.address || null;
       const isChainCorrect = activeChain?.id === chilizChainId;
+      setState((prevState) => ({
+        ...prevState,
+        isConnecting,
+        isWalletConnected: isConnected,
+        walletAddress: address,
+        isOnCorrectNetwork: isChainCorrect,
+        chzBalance: data ? parseFloat(data.displayValue) : 0,
+      }));
       
-      setState(prevState => ({ ...prevState, isConnecting, isWalletConnected: isConnected, walletAddress: address, isOnCorrectNetwork: isChainCorrect }));
+      
 
       if (isConnected && address && isChainCorrect) {
-        await fetchScoreForWallet(address);
+        await fetchScoreForWallet(activeAccount?.address || "");
       } else if (isConnected && (!address || !isChainCorrect)) {
         // Connected, but wrong chain or no address, clear score info
-        setState(prevState => ({ 
-            ...prevState, 
-            superfanScore: 0,
-            fanLevel: "Rookie",
-            nftsHeld: 0,
-            ritualsCompleted: 0,
-            chzBalance: 0,
+        setState((prevState) => ({
+          ...prevState,
+          superfanScore: 0,
+          fanLevel: "Rookie",
+          nftsHeld: 0,
+          ritualsCompleted: 0,
+          chzBalance: 0,
         }));
-      } else if (status === 'disconnected') {
+      } else if (status === "disconnected") {
         // Disconnected
         setState(initialState);
       }
@@ -133,7 +155,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
     handleStatusChange();
   }, [status, activeAccount, activeChain]);
-
 
   const calculateFanLevel = (score: number): string => {
     if (score < 300) return "Rookie";
@@ -146,7 +167,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       if (!address) return;
       setState((prevState) => ({ ...prevState, isLoadingScore: true }));
       try {
-        const response = await fetch(`/api/score?walletAddress=${address}`);
+        const response = await fetch(`/api/score?walletAddress=${address}&walletBalance=${state.chzBalance}`, {});
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || "Failed to fetch score");
@@ -166,7 +187,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         toast({
           variant: "destructive",
           title: "Score Fetch Failed",
-          description: "Could not retrieve your on-chain data. Please try again later.",
+          description:
+            "Could not retrieve your on-chain data. Please try again later.",
         });
         setState((prevState) => ({
           ...prevState,
@@ -186,7 +208,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     // This function is now primarily handled by the Thirdweb ConnectButton
     // and the useEffect hook that listens to connection status changes.
     // Kept here for any potential manual trigger points.
-    toast({ title: "Connecting...", description: "Please follow the prompts in your wallet." });
+    toast({
+      title: "Connecting...",
+      description: "Please follow the prompts in your wallet.",
+    });
   };
 
   const disconnectWallet = async () => {
@@ -239,14 +264,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       });
       return;
     }
-    if (state.superfanScore < 100) {
-      toast({
-        variant: "destructive",
-        title: "Artwork Denied",
-        description: `Score too low. Need 100, have ${state.superfanScore}.`,
-      });
-      return;
-    }
+    // if (state.superfanScore < 100) {
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Artwork Denied",
+    //     description: `Score too low. Need 100, have ${state.superfanScore}.`,
+    //   });
+    //   return;
+    // }
 
     setState((prevState) => ({
       ...prevState,

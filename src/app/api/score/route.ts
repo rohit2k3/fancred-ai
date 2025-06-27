@@ -3,7 +3,9 @@ import { NextResponse } from 'next/server';
 import { contract, tokenContract } from '@/constant/contact';
 import { balanceOf as balanceOfErc721 } from "thirdweb/extensions/erc721";
 import { balanceOf as balanceOfErc20 } from "thirdweb/extensions/erc20";
+import { getBalance } from "thirdweb/extensions/erc20";
 import { formatUnits } from "ethers/lib/utils";
+
 
 // This function calculates the score based on on-chain data.
 // The data for 'ritualsCompleted' would typically come from a database,
@@ -21,6 +23,7 @@ function calculateScore(nftsHeld: number, ritualsCompleted: number, chzBalance: 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const walletAddress = searchParams.get('walletAddress');
+  const walletBalance = searchParams.get('walletBalance');
 
   if (!walletAddress) {
     return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
@@ -28,15 +31,25 @@ export async function GET(request: Request) {
 
   try {
     // Fetch real on-chain data
-    const nftsHeldBigInt = await balanceOfErc721({ contract, owner: walletAddress });
-    const chzBalanceBigInt = await balanceOfErc20({ contract: tokenContract, address: walletAddress });
+    // const nftsHeldBigInt = await balanceOfErc721({ contract, owner: walletAddress });
+    // const balance = await getBalance({ contract, address: walletAddress});
+    // alert(`Balance for ${walletAddress}: ${balance.displayValue}`);
+    // console.log(`Balance for ${walletAddress}:`, balance);
+    
+    // const chzBalanceBigInt = await balanceOfErc20({ contract: tokenContract, address: walletAddress });
 
-    const nftsHeld = Number(nftsHeldBigInt);
-    // CHZ token has 18 decimals, format it to a readable number
-    const chzBalance = parseFloat(formatUnits(chzBalanceBigInt, 18));
+    // const nftsHeld = Number(nftsHeldBigInt);
+    // // CHZ token has 18 decimals, format it to a readable number
+    // const chzBalance = parseFloat(formatUnits(chzBalanceBigInt, 18));
 
-    // Rituals completed would come from a database. We'll mock this part.
-    const ritualsCompleted = Math.floor(Math.random() * 25); // Mock data for rituals
+    // // Rituals completed would come from a database. We'll mock this part.
+    // const ritualsCompleted = Math.floor(Math.random() * 25); // Mock data for rituals
+    //dummy data here
+    const nftsHeld = 5; // Mocked data for NFTs held
+    const ritualsCompleted = 10; // Mocked data for rituals completed
+    const chzBalance = walletBalance ? parseFloat(walletBalance) : 0; // Use provided balance or default to 100 CHZ
+
+    
 
     const score = calculateScore(nftsHeld, ritualsCompleted, chzBalance);
 
@@ -57,6 +70,7 @@ export async function GET(request: Request) {
       nftsHeld: 0,
       ritualsCompleted: 0,
       chzBalance: 0,
+      errorMessage:error instanceof Error ? error.message : "Unknown error",
       error: "Failed to fetch on-chain data. The wallet address might not be valid or there was a network issue.",
     }, { status: 500 });
   }
