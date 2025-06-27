@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { UserProvider } from '@/contexts/UserContext';
 import { ThirdwebProvider } from "thirdweb/react";
-// import { ChilizSpicy } from "@thirdweb-dev/chains";
+import { ThemeProvider } from '@/components/layout/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'FanCred AI',
@@ -37,20 +37,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased min-h-screen flex flex-col">
-        <ThirdwebProvider>
-          <UserProvider>
-            {children}
-            <Toaster />
-          </UserProvider>
-        </ThirdwebProvider>
+      <body className="font-body antialiased min-h-screen flex flex-col relative">
+        <div className="absolute top-0 left-0 w-full h-full bg-background -z-10">
+           <div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-[rgba(230,57,70,0.5)] opacity-50 blur-[80px]"></div>
+        </div>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ThirdwebProvider>
+            <UserProvider>
+              {children}
+              <Toaster />
+            </UserProvider>
+          </ThirdwebProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

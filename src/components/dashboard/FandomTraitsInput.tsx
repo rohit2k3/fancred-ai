@@ -21,11 +21,11 @@ const FandomTraitsInput = () => {
   };
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
+    <Card>
       <CardHeader>
         <div className="flex items-center gap-2 mb-1">
           <UserCheck className="h-6 w-6 text-primary" />
-          <CardTitle className="text-xl font-headline">Define Your Fandom</CardTitle>
+          <CardTitle className="text-xl font-bold">Define Your Fandom</CardTitle>
         </div>
         <CardDescription>
           Help our AI understand your unique fan identity to generate a personalized badge.

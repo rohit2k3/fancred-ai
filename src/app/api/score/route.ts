@@ -1,109 +1,77 @@
 // src/app/api/score/route.ts
 import { NextResponse } from 'next/server';
+import { contract, tokenContract } from '@/constant/contact';
+import { balanceOf as balanceOfErc721 } from "thirdweb/extensions/erc721";
+import { balanceOf as balanceOfErc20 } from "thirdweb/extensions/erc20";
+import { getBalance } from "thirdweb/extensions/erc20";
+import { formatUnits } from "ethers/lib/utils";
 
-// Mock database or on-chain data source
-interface UserScoreData {
-  nftsHeld: number;
-  ritualsCompleted: number;
-  chzBalance: number; // Mocked, in a real app, fetch from Chiliz RPC
-}
 
-// In a real app, this data would come from a database or live on-chain queries
-const mockUserScoreData: { [walletAddress: string]: UserScoreData } = {
-  // Pre-populate with some diverse examples if needed for testing
-  // '0x123...abc': { nftsHeld: 5, ritualsCompleted: 10, chzBalance: 500 },
-};
-
-function calculateScore(data: UserScoreData): number {
+// This function calculates the score based on on-chain data.
+// The data for 'ritualsCompleted' would typically come from a database,
+// as it's an off-chain action. For now, it's a mock value.
+function calculateScore(nftsHeld: number, ritualsCompleted: number, chzBalance: number): number {
   let score = 0;
-  score += data.nftsHeld * 50; // 50 points per NFT
-  score += data.ritualsCompleted * 20; // 20 points per ritual
-  score += Math.min(Math.floor(data.chzBalance / 10) * 5, 500); // 5 points per 10 CHZ, max 500 points from CHZ balance
-  
+  score += nftsHeld * 50; // 50 points per NFT
+  score += ritualsCompleted * 20; // 20 points per ritual
+  score += Math.min(Math.floor(chzBalance / 10) * 5, 500); // 5 points per 10 CHZ, max 500 points from CHZ balance
+
   // Ensure score is within a reasonable range, e.g., 0-1000
   return Math.min(Math.max(score, 0), 1000);
 }
 
-function getInitialUserData(walletAddress: string): UserScoreData {
-   if (!mockUserScoreData[walletAddress]) {
-    // Initialize a new user with some random baseline data for demo purposes
-    // Make it more varied and somewhat "realistic" for a new user
-    const nfts = Math.random() < 0.3 ? 0 : Math.floor(Math.random() * 3) + 1; // 30% chance 0 NFTs, else 1-3
-    const rituals = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 5) + 1; // 50% chance 0 rituals, else 1-5
-    const balance = Math.floor(Math.random() * 200) + (Math.random() < 0.2 ? 500 : 50); // Random balance, 20% chance of higher base
-
-    mockUserScoreData[walletAddress] = {
-      nftsHeld: nfts,
-      ritualsCompleted: rituals,
-      chzBalance: balance,
-    };
-  }
-  return mockUserScoreData[walletAddress];
-}
-
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const walletAddress = searchParams.get('walletAddress');
+  const walletBalance = searchParams.get('walletBalance');
 
   if (!walletAddress) {
     return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
   }
-  
-  const userData = getInitialUserData(walletAddress); // Ensures user data exists
-  const score = calculateScore(userData);
 
-  return NextResponse.json({
-    walletAddress,
-    score,
-    nftsHeld: userData.nftsHeld,
-    ritualsCompleted: userData.ritualsCompleted,
-    chzBalance: userData.chzBalance,
-  });
-}
-
-export async function POST(request: Request) {
   try {
-    const { walletAddress, action } = await request.json();
-
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
-    }
-
-    const userData = getInitialUserData(walletAddress); // Ensures user data exists or is initialized
-
-    let actionMessage = "User data updated";
-
-    if (action === 'complete_ritual') {
-      userData.ritualsCompleted += 1;
-      actionMessage = `Ritual completed! Your participation is noted.`;
-    } else if (action === 'acquire_nft') {
-      userData.nftsHeld +=1;
-      actionMessage = `New NFT acquired! Your collection grows.`;
-    } else {
-      return NextResponse.json({ error: 'Invalid action type' }, { status: 400 });
-    }
+    // Fetch real on-chain data
+    // const nftsHeldBigInt = await balanceOfErc721({ contract, owner: walletAddress });
+    // const balance = await getBalance({ contract, address: walletAddress});
+    // alert(`Balance for ${walletAddress}: ${balance.displayValue}`);
+    // console.log(`Balance for ${walletAddress}:`, balance);
     
-    // Update the stored mock data
-    mockUserScoreData[walletAddress] = userData;
+    // const chzBalanceBigInt = await balanceOfErc20({ contract: tokenContract, address: walletAddress });
 
-    const newScore = calculateScore(userData);
+    // const nftsHeld = Number(nftsHeldBigInt);
+    // // CHZ token has 18 decimals, format it to a readable number
+    // const chzBalance = parseFloat(formatUnits(chzBalanceBigInt, 18));
+
+    // // Rituals completed would come from a database. We'll mock this part.
+    // const ritualsCompleted = Math.floor(Math.random() * 25); // Mock data for rituals
+    //dummy data here
+    const nftsHeld = 5; // Mocked data for NFTs held
+    const ritualsCompleted = 10; // Mocked data for rituals completed
+    const chzBalance = walletBalance ? parseFloat(walletBalance) : 0; // Use provided balance or default to 100 CHZ
+
     
+
+    const score = calculateScore(nftsHeld, ritualsCompleted, chzBalance);
+
     return NextResponse.json({
       walletAddress,
-      score: newScore,
-      message: `${actionMessage} New score: ${newScore}`,
-      nftsHeld: userData.nftsHeld,
-      ritualsCompleted: userData.ritualsCompleted,
-      chzBalance: userData.chzBalance,
+      score,
+      nftsHeld,
+      ritualsCompleted, // This is still mocked
+      chzBalance,
     });
 
   } catch (error) {
-    console.error('Error processing POST request to /api/score:', error);
-    let message = 'Failed to update score data';
-    if (error instanceof Error) {
-        message = error.message;
-    }
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error(`Error fetching on-chain data for ${walletAddress}:`, error);
+    // Return a default/zero score on error to prevent app from crashing
+    return NextResponse.json({
+      walletAddress,
+      score: 0,
+      nftsHeld: 0,
+      ritualsCompleted: 0,
+      chzBalance: 0,
+      errorMessage:error instanceof Error ? error.message : "Unknown error",
+      error: "Failed to fetch on-chain data. The wallet address might not be valid or there was a network issue.",
+    }, { status: 500 });
   }
 }

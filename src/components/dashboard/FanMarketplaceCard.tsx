@@ -83,11 +83,11 @@ const FanMarketplaceCard = () => {
 
   return (
     <TooltipProvider>
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full">
+    <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-6 w-6 text-primary" />
-          <CardTitle className="text-xl font-headline">Fan Marketplace</CardTitle>
+          <CardTitle className="text-xl font-bold">Fan Marketplace</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -97,9 +97,9 @@ const FanMarketplaceCard = () => {
         
         <div className="space-y-4">
           {perks.map((perk) => (
-            <div key={perk.id} className="p-4 border rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-card hover:bg-muted/50 transition-colors">
+            <div key={perk.id} className="p-4 border border-white/10 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/5 hover:bg-white/10 transition-colors">
               <div className="flex items-start gap-3">
-                <perk.icon className="h-8 w-8 text-accent mt-1 shrink-0" />
+                <perk.icon className="h-8 w-8 text-primary mt-1 shrink-0" />
                 <div>
                   <h4 className="font-semibold text-foreground flex items-center">
                     {perk.title}
@@ -133,7 +133,7 @@ const FanMarketplaceCard = () => {
           ))}
         </div>
       </CardContent>
-       <CardFooter className="pt-4 border-t">
+       <CardFooter className="pt-4 border-t border-white/10">
             <p className="text-xs text-muted-foreground text-center w-full">
                 Marketplace features are currently for demonstration. XP and CHZ transactions are simulated.
             </p>

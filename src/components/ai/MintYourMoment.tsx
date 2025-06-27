@@ -39,11 +39,11 @@ const MintYourMoment = () => {
 
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full relative">
+    <Card className="w-full relative">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <Edit3 className="h-6 w-6 text-primary" />
-          <CardTitle className="text-xl font-headline">Mint Your Moment</CardTitle>
+          <CardTitle className="text-xl font-bold">Mint Your Moment</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
@@ -64,20 +64,20 @@ const MintYourMoment = () => {
         </Button>
         
         {generatedQuote && (
-          <div className="mt-6 p-4 border border-dashed border-accent rounded-lg bg-accent/10">
-            <p className="text-lg font-semibold text-accent-foreground text-center italic">"{generatedQuote}"</p>
+          <div className="mt-6 p-4 border border-dashed border-primary/50 rounded-lg bg-primary/10">
+            <p className="text-lg font-semibold text-primary-foreground text-center italic">"{generatedQuote}"</p>
           </div>
         )}
       </CardContent>
       {generatedQuote && (
-        <CardFooter className="pt-4 border-t">
+        <CardFooter className="pt-4 border-t border-white/10">
           <Button onClick={handleMintNFT} variant="outline" className="w-full" disabled={!isWalletConnected}>
             Mint Quote as NFT (Bonus)
           </Button>
         </CardFooter>
       )}
       {!isWalletConnected && (
-         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 rounded-lg">
+         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-4 rounded-2xl">
             <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
             <p className="text-lg font-semibold text-center mb-2">Wallet Not Connected</p>
             <p className="text-sm text-muted-foreground text-center">Please connect your wallet to mint your moment.</p>

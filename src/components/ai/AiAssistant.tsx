@@ -102,29 +102,27 @@ const AiAssistant = () => {
   const predefinedQuestionAnalysis = "Analyze my fan profile";
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 w-full flex flex-col max-h-[700px]">
+    <Card className="w-full flex flex-col max-h-[700px] relative overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
-          <CardTitle className="text-xl font-headline">AI Fan Assistant</CardTitle>
+          <CardTitle className="text-xl font-bold">AI Fan Assistant</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="flex-grow overflow-hidden p-0">
         <ScrollArea className="h-[400px] p-4" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {msg.sender !== 'user' && <Bot className="h-6 w-6 rounded-full bg-primary/20 text-primary p-1 flex-shrink-0" />}
                 <div className={`p-3 rounded-lg max-w-[85%] ${
-                    msg.sender === 'user' ? 'bg-primary text-primary-foreground' 
+                    msg.sender === 'user' ? 'bg-primary text-primary-foreground rounded-br-none' 
                     : msg.sender === 'system' ? 'bg-destructive/20 text-destructive-foreground'
-                    : 'bg-muted text-foreground'
+                    : 'bg-secondary text-secondary-foreground rounded-bl-none'
                   }`}>
-                  {msg.sender === 'ai' && <Bot className="h-5 w-5 mb-1 text-accent inline-block mr-2" />}
-                  {msg.sender === 'user' && <UserCircle className="h-5 w-5 mb-1 inline-block mr-2" />}
-                  {msg.sender === 'system' && <AlertTriangle className="h-5 w-5 mb-1 text-destructive inline-block mr-2" />}
                   
-                  {msg.type === 'analysis' && <strong className="block mb-1 font-semibold text-accent">Fan Analysis:</strong>}
-                  {msg.type === 'suggestion' && <strong className="block mb-1 font-semibold text-accent">Improvement Suggestions:</strong>}
+                  {msg.type === 'analysis' && <strong className="block mb-1 font-semibold text-primary">Fan Analysis:</strong>}
+                  {msg.type === 'suggestion' && <strong className="block mb-1 font-semibold text-primary">Improvement Suggestions:</strong>}
 
                   {Array.isArray(msg.text) ? (
                     <ul className="list-disc list-inside space-y-1">
@@ -134,11 +132,12 @@ const AiAssistant = () => {
                     <p className="whitespace-pre-wrap">{msg.text}</p>
                   )}
                 </div>
+                 {msg.sender === 'user' && <UserCircle className="h-6 w-6 rounded-full bg-muted text-muted-foreground p-1 flex-shrink-0" />}
               </div>
             ))}
             {(isLoadingAiSuggestions || isLoadingFanAnalysis) && (
               <div className="flex justify-start">
-                <div className="p-3 rounded-lg bg-muted flex items-center">
+                <div className="p-3 rounded-lg bg-secondary flex items-center">
                   <LoadingSpinner size="sm" className="mr-2" />
                   <p>AI is thinking...</p>
                 </div>
@@ -154,7 +153,7 @@ const AiAssistant = () => {
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter className="pt-4 border-t flex-col items-stretch gap-2">
+      <CardFooter className="pt-4 border-t border-white/10 flex-col items-stretch gap-2">
         <div className="flex w-full items-start gap-2">
           <Textarea
             placeholder={`Ask about your score of ${superfanScore} or type a command...`}
@@ -185,7 +184,7 @@ const AiAssistant = () => {
         </div>
       </CardFooter>
         {!isWalletConnected && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 rounded-lg">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center p-4 rounded-2xl">
                 <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
                 <p className="text-lg font-semibold text-center mb-2">Wallet Not Connected</p>
                 <p className="text-sm text-muted-foreground text-center">Please connect your wallet to interact with the AI Fan Assistant.</p>
